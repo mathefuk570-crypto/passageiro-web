@@ -1,133 +1,194 @@
---- /mnt/data/PATCH_TUM_WEB_ATALHO_CHROME_LIBERACAO_2026-09-28/dom/src/App.tsx	2026-09-28 07:22:53.882957183 +0000
-+++ /mnt/data/tum_web/dom/src/App.tsx	2026-09-28 07:29:25.898352490 +0000
-@@ -11,7 +11,7 @@
- import { loadSafetyRecordingState, saveSafetyRecordingState } from './lib/safetyRecording';
- import AppErrorBoundary from './components/AppErrorBoundary';
- import PwaInstallGuide from './components/PwaInstallGuide';
--import { detectPwaEnvironment, installMobileViewportGuards, isPwaAccessGranted, registerPwaServiceWorker } from './lib/pwaInstall';
-+import { detectPwaEnvironment, getDeferredInstallPrompt, installMobileViewportGuards, isPwaAccessGranted, registerPwaServiceWorker } from './lib/pwaInstall';
+--- /dev/fd/63	2026-09-28 11:31:26.073907792 +0000
++++ /mnt/data/tum_web_colorfix/app/+html.tsx	2026-09-28 11:30:50.784187444 +0000
+@@ -11,11 +11,29 @@
+       : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+     var ua = navigator.userAgent || '';
  
- type AppProps = {
-   runtimePlatform?: string;
-@@ -150,29 +150,84 @@
-       return undefined;
-     }
++    var isSamsung = /SamsungBrowser/i.test(ua);
++    var scheme = 'only ' + theme;
++    var bg = theme === 'dark' ? '#050505' : '#F7F7F8';
++
+     root.classList.remove('light', 'dark');
+     root.classList.add(theme);
+     root.dataset.tumTheme = theme;
+-    root.dataset.tumBrowser = /SamsungBrowser/i.test(ua) ? 'samsung' : 'other';
+-    root.style.colorScheme = theme;
++    root.dataset.tumBrowser = isSamsung ? 'samsung' : 'other';
++
++    /*
++      Chromium/Samsung Auto Dark pode recolorir a pagina quando ela declara
++      suporte generico a dark+light. "only" informa que a pagina ja fornece
++      o esquema ativo e que o navegador nao deve fabricar outro por cima.
++    */
++    root.style.setProperty('color-scheme', scheme, 'important');
++    root.style.setProperty('background-color', bg, 'important');
++
++    var colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
++    if (colorSchemeMeta) colorSchemeMeta.setAttribute('content', scheme);
++    var supportedMeta = document.querySelector('meta[name="supported-color-schemes"]');
++    if (supportedMeta) supportedMeta.setAttribute('content', theme);
++    var themeMeta = document.querySelector('meta[name="theme-color"]');
++    if (themeMeta) themeMeta.setAttribute('content', bg);
+   } catch (_) {
+     document.documentElement.classList.add('dark');
+   }
+@@ -39,16 +57,16 @@
+         <meta name="application-name" content="TUM" />
+         <meta name="apple-mobile-web-app-title" content="TUM" />
+         <meta name="theme-color" content="#050505" />
++        <meta name="darkreader-lock" />
  
--    void registerPwaServiceWorker();
-+    let cancelled = false;
-+    let probeTimer: number | undefined;
-     const removeViewportGuards = installMobileViewportGuards();
+         {/*
+-          IMPORTANTE PARA SAMSUNG INTERNET:
+-          declaramos os dois esquemas aqui, antes de qualquer CSS. O Samsung
+-          Internet usa esta declaração para saber que o próprio site trata
+-          claro/escuro e, nas configurações compatíveis, evita aplicar a
+-          transformação automática de cores por cima do tema do TUM.
++          Anti Auto-Dark: começamos travados no dark (tema padrão) e o script
++          acima troca sincronamente para `only light` quando necessário.
++          Declarar dark+light ao mesmo tempo permitia que algumas versões do
++          Samsung Internet aplicassem uma segunda conversão de cores.
+         */}
+-        <meta name="color-scheme" content="dark light" />
+-        <meta name="supported-color-schemes" content="dark light" />
++        <meta name="color-scheme" content="only dark" />
++        <meta name="supported-color-schemes" content="dark" />
  
--    const refreshPwaAccess = () => {
-+    const allowApp = () => {
-+      if (!cancelled) setPwaAccess('allowed');
-+    };
-+
-+    const evaluateInstallGate = () => {
-+      if (cancelled) return;
-+
-       const environment = detectPwaEnvironment();
--      const installedOrHomescreen = isPwaAccessGranted();
--      setPwaAccess(environment.mobile && !installedOrHomescreen ? 'install-required' : 'allowed');
-+
-+      // Desktop, PWA já instalado ou abertura por atalho: nunca bloquear.
-+      if (!environment.mobile || isPwaAccessGranted()) {
-+        setPwaAccess('allowed');
-+        return;
-+      }
-+
-+      // Nova regra: só exigimos instalação quando o próprio navegador
-+      // disponibilizou o prompt nativo `beforeinstallprompt`.
-+      setPwaAccess(getDeferredInstallPrompt() ? 'install-required' : 'allowed');
-+    };
-+
-+    const initializePwaGate = async () => {
-+      await registerPwaServiceWorker();
-+      if (cancelled) return;
-+
-+      const environment = detectPwaEnvironment();
-+      if (!environment.mobile || isPwaAccessGranted()) {
-+        setPwaAccess('allowed');
-+        return;
-+      }
-+
-+      if (getDeferredInstallPrompt()) {
-+        setPwaAccess('install-required');
-+        return;
-+      }
-+
-+      // O Chromium pode disparar `beforeinstallprompt` alguns instantes depois
-+      // do carregamento. Fazemos uma verificação curta; se o navegador não
-+      // oferecer instalação, o TUM é liberado e o usuário pode usar o atalho.
-+      probeTimer = window.setTimeout(() => {
-+        evaluateInstallGate();
-+      }, 1400);
-+    };
-+
-+    const onInstallReady = () => {
-+      if (cancelled) return;
-+      if (probeTimer !== undefined) {
-+        window.clearTimeout(probeTimer);
-+        probeTimer = undefined;
-+      }
-+
-+      if (!isPwaAccessGranted()) setPwaAccess('install-required');
-+    };
-+
-+    const onInstallCompleted = () => {
-+      if (probeTimer !== undefined) {
-+        window.clearTimeout(probeTimer);
-+        probeTimer = undefined;
-+      }
-+      allowApp();
-     };
+         <script dangerouslySetInnerHTML={{ __html: EARLY_THEME_SCRIPT }} />
+         <link rel="manifest" href="/manifest.webmanifest" />
+--- /dev/fd/63	2026-09-28 11:31:26.078052419 +0000
++++ /mnt/data/tum_web_colorfix/dom/src/hooks/useTheme.tsx	2026-09-28 11:30:50.784381166 +0000
+@@ -42,24 +42,27 @@
+   root.dataset.tumBrowser = /SamsungBrowser/i.test(ua) ? 'samsung' : 'other';
  
--    refreshPwaAccess();
-+    void initializePwaGate();
+   /*
+-    A meta tag fica SEMPRE com os dois temas suportados. Isso é proposital:
+-    Samsung Internet usa a declaração para preferir o tema fornecido pelo site
+-    em vez de aplicar o Force Dark sobre as cores do TUM.
+-
+-    O esquema efetivamente ativo continua sendo controlado pelo app no elemento
+-    raiz, então o botão de tema do TUM segue mandando na interface.
++    Trava o esquema ATIVO em vez de anunciar dark+light simultaneamente.
++    `only light`/`only dark` e a forma suportada pelo Chromium para dizer que
++    o site ja cuida das cores e nao precisa de Auto Dark/Force Dark adicional.
++    Isso evita o segundo processamento de cor observado no Samsung Internet.
+   */
+-  ensureMeta('color-scheme', 'dark light');
+-  ensureMeta('supported-color-schemes', 'dark light');
+-  ensureMeta('theme-color', theme === 'dark' ? '#050505' : '#F7F7F8');
++  const scheme = `only ${theme}`;
++  const background = theme === 'dark' ? '#050505' : '#F7F7F8';
++
++  ensureMeta('color-scheme', scheme);
++  // Compatibilidade com engines Samsung antigas que ainda consultam esta meta.
++  ensureMeta('supported-color-schemes', theme);
++  ensureMeta('theme-color', background);
++  ensureMeta('darkreader-lock', '');
  
--    const displayMode = window.matchMedia?.('(display-mode: standalone)');
--    window.addEventListener('pageshow', refreshPwaAccess);
--    window.addEventListener('focus', refreshPwaAccess);
--    document.addEventListener('visibilitychange', refreshPwaAccess);
--    displayMode?.addEventListener?.('change', refreshPwaAccess);
-+    window.addEventListener('tum:pwa-install-ready', onInstallReady);
-+    window.addEventListener('tum:pwa-installed', onInstallCompleted);
-+    window.addEventListener('tum:pwa-install-accepted', onInstallCompleted);
+-  root.style.colorScheme = theme;
+-  root.style.backgroundColor = theme === 'dark' ? '#050505' : '#F7F7F8';
++  root.style.setProperty('color-scheme', scheme, 'important');
++  root.style.setProperty('background-color', background, 'important');
  
-     return () => {
-+      cancelled = true;
-+      if (probeTimer !== undefined) window.clearTimeout(probeTimer);
-       removeViewportGuards();
--      window.removeEventListener('pageshow', refreshPwaAccess);
--      window.removeEventListener('focus', refreshPwaAccess);
--      document.removeEventListener('visibilitychange', refreshPwaAccess);
--      displayMode?.removeEventListener?.('change', refreshPwaAccess);
-+      window.removeEventListener('tum:pwa-install-ready', onInstallReady);
-+      window.removeEventListener('tum:pwa-installed', onInstallCompleted);
-+      window.removeEventListener('tum:pwa-install-accepted', onInstallCompleted);
-     };
-   }, [runtimePlatform]);
- 
---- /mnt/data/PATCH_TUM_WEB_ATALHO_CHROME_LIBERACAO_2026-09-28/dom/src/lib/pwaInstall.ts	2026-09-28 07:22:53.885991718 +0000
-+++ /mnt/data/tum_web/dom/src/lib/pwaInstall.ts	2026-09-28 07:29:25.898685667 +0000
-@@ -35,9 +35,19 @@
- export async function promptPwaInstall(): Promise<'accepted' | 'dismissed' | 'unavailable'> {
-   const prompt = deferredInstallPrompt;
-   if (!prompt) return 'unavailable';
-+
-   await prompt.prompt();
-   const choice = await prompt.userChoice;
--  if (choice.outcome === 'accepted') deferredInstallPrompt = null;
-+
-+  // O evento `beforeinstallprompt` só pode ser consumido uma vez.
-+  deferredInstallPrompt = null;
-+
-+  if (choice.outcome === 'accepted' && typeof window !== 'undefined') {
-+    // Libera a aba atual imediatamente depois que o usuário aceitou a
-+    // instalação. O `appinstalled` continua sendo ouvido como confirmação.
-+    window.dispatchEvent(new CustomEvent('tum:pwa-install-accepted'));
-+  }
-+
-   return choice.outcome;
+   if (document.body) {
+     document.body.dataset.tumTheme = theme;
+-    document.body.style.colorScheme = theme;
+-    document.body.style.backgroundColor = theme === 'dark' ? '#050505' : '#F7F7F8';
++    document.body.style.setProperty('color-scheme', scheme, 'important');
++    document.body.style.setProperty('background-color', background, 'important');
+   }
  }
  
+--- /dev/fd/63	2026-09-28 11:31:26.082052383 +0000
++++ /mnt/data/tum_web_colorfix/dom/src/index.css	2026-09-28 11:30:50.784778623 +0000
+@@ -4,7 +4,7 @@
+ @tailwind utilities;
+ 
+ :root {
+-  color-scheme: dark light;
++  color-scheme: only dark;
+   --tum-bg: 18 18 18;
+   --tum-surface: 30 30 30;
+   --tum-surface-alt: 42 42 42;
+@@ -13,11 +13,11 @@
+ }
+ 
+ html.dark {
+-  color-scheme: dark;
++  color-scheme: only dark;
+ }
+ 
+ html.light {
+-  color-scheme: light;
++  color-scheme: only light;
+   --tum-bg: 244 244 245;
+   --tum-surface: 255 255 255;
+   --tum-surface-alt: 235 237 240;
+@@ -56,11 +56,42 @@
+ html[data-tum-browser='samsung'],
+ html[data-tum-browser='samsung'] body,
+ html[data-tum-browser='samsung'] #root {
+-  forced-color-adjust: none;
++  forced-color-adjust: none !important;
+   -webkit-print-color-adjust: exact;
+   print-color-adjust: exact;
+ }
+ 
++/*
++   Samsung Internet/Chromium Auto Dark:
++   `only` e importante aqui. Declarar os dois esquemas ao mesmo tempo pode
++   fazer algumas versoes do navegador reinterpretarem o amarelo, fundos e
++   controles mesmo quando o TUM ja aplicou o seu proprio tema.
++*/
++html[data-tum-browser='samsung'].dark,
++html[data-tum-browser='samsung'].dark body,
++html[data-tum-browser='samsung'].dark #root {
++  color-scheme: only dark !important;
++  background-color: #050505 !important;
++}
++
++html[data-tum-browser='samsung'].light,
++html[data-tum-browser='samsung'].light body,
++html[data-tum-browser='samsung'].light #root {
++  color-scheme: only light !important;
++  background-color: #f7f7f8 !important;
++}
++
++/* Midia do app nunca deve receber filtro/blend automatico do navegador. */
++html[data-tum-browser='samsung'] img,
++html[data-tum-browser='samsung'] svg,
++html[data-tum-browser='samsung'] canvas,
++html[data-tum-browser='samsung'] video,
++html[data-tum-browser='samsung'] picture {
++  filter: none !important;
++  mix-blend-mode: normal !important;
++  forced-color-adjust: none !important;
++}
++
+ /* O gradiente de uma única cor funciona como camada de fundo autoral e reduz
+    a chance de heurísticas de Auto/Force Dark substituírem o canvas da página. */
+ body,
+@@ -89,7 +120,8 @@
+ html[data-tum-browser='samsung'] textarea,
+ html[data-tum-browser='samsung'] select,
+ html[data-tum-browser='samsung'] button {
+-  forced-color-adjust: none;
++  forced-color-adjust: none !important;
++  color-scheme: inherit !important;
+ }
+ 
+ /* iPhone faz zoom automático ao focar campos menores que 16 px. Mantemos o
+@@ -540,11 +572,11 @@
+    utilitários text-white/bg-black herdados do dark mode.
+    -------------------------------------------------------------------------- */
+ html.dark {
+-  color-scheme: dark;
++  color-scheme: only dark;
+ }
+ 
+ html.light {
+-  color-scheme: light;
++  color-scheme: only light;
+   --tum-bg: 247 247 248;
+   --tum-surface: 255 255 255;
+   --tum-surface-alt: 246 247 248;

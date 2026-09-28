@@ -1,31 +1,46 @@
-# TUM WEB — trava somente quando o navegador oferece instalação
+# TUM WEB — Hotfix Samsung Internet / cores V2
+Data: 28/09/2026
 
-## Regra nova
-O TUM **não tenta mais obrigar instalação/standalone em todo navegador**.
+## Problema
+No Samsung Internet, principalmente com o modo escuro do navegador ativo, o navegador podia aplicar uma segunda transformação de cores por cima do tema do TUM. O efeito era amarelo alterado/amarronzado, fundos e superfícies com tons diferentes e mapa/mídia visualmente "lavados", enquanto no Chrome do mesmo aparelho a interface aparecia correta.
 
-No celular, o fluxo fica assim:
+## O que muda nesta V2
+O patch anterior anunciava `dark light` como esquemas suportados. Em algumas versões Chromium/Samsung isso ainda permite Auto Dark.
 
-- Se o navegador disparar o prompt nativo de instalação (`beforeinstallprompt`), o TUM mostra a tela obrigatória de instalação e só libera depois que o usuário aceitar a instalação.
-- Se o navegador **não** disponibilizar esse prompt, o TUM é liberado normalmente. Nesse caso o passageiro pode usar o navegador e/ou o recurso manual **Adicionar à tela inicial** sem ficar preso numa verificação de tela cheia/standalone.
-- Se o TUM já estiver instalado ou tiver sido aberto por um atalho reconhecido, o acesso é liberado normalmente.
+Agora o TUM trava **somente o tema que está realmente ativo**:
+- tema escuro -> `color-scheme: only dark`
+- tema claro -> `color-scheme: only light`
 
-## Verificação inicial
-O app aguarda cerca de **1,4 segundo** na abertura para dar tempo de navegadores Chromium disponibilizarem o prompt de instalação. Se o prompt não aparecer, o TUM continua normalmente.
+A trava é aplicada:
+- no `<head>` antes da primeira pintura;
+- nas meta tags de `color-scheme`;
+- no `html`, `body` e `#root`;
+- novamente ao trocar tema, voltar ao app, trocar aba ou recuperar o navegador;
+- em imagens, SVG, canvas e mapas no Samsung Internet para impedir filtros/blends extras.
 
-## Depois de aceitar a instalação
-Quando o passageiro aceita o prompt nativo, a aba atual é liberada imediatamente. O evento `appinstalled` continua sendo ouvido como confirmação adicional.
+O botão claro/escuro do TUM continua funcionando normalmente.
 
-## Arquivos alterados
-- `dom/src/App.tsx`
-- `dom/src/lib/pwaInstall.ts`
+## Arquivos
+- `app/+html.tsx`
+- `dom/src/hooks/useTheme.tsx`
+- `dom/src/index.css`
 
 ## Como aplicar
-Extraia o ZIP por cima da versão WEB/PWA atual e aceite substituir os arquivos.
+Extraia este ZIP por cima do projeto WEB/PWA e aceite substituir os arquivos.
 
-Depois reinicie o servidor limpando o cache:
+Depois reinicie limpando o cache do Expo:
 
-```bash
+```bat
 npx expo start --web --lan -c
 ```
 
-Para testar o prompt real de instalação, prefira a versão publicada em HTTPS. Em IP local (`http://192.168...`) o navegador normalmente não disponibiliza instalação nativa, então o TUM será liberado sem travar — que é justamente a regra nova.
+Para testar o comportamento real no Samsung Internet, prefira a versão publicada em HTTPS.
+
+## Depois de publicar
+O Samsung Internet pode manter CSS/HTML antigo agressivamente. No aparelho:
+1. feche todas as abas do TUM;
+2. limpe os dados do site/cache do endereço do TUM no Samsung Internet;
+3. abra novamente a URL publicada;
+4. teste tema escuro e claro.
+
+Se o navegador estiver com uma opção global de **forçar modo escuro em páginas da Web**, esta V2 pede explicitamente que o Chromium não faça essa conversão. Versões modificadas do navegador podem, em último caso, ignorar a preferência do site.

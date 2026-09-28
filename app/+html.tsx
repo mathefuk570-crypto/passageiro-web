@@ -11,11 +11,29 @@ const EARLY_THEME_SCRIPT = `
       : (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
     var ua = navigator.userAgent || '';
 
+    var isSamsung = /SamsungBrowser/i.test(ua);
+    var scheme = 'only ' + theme;
+    var bg = theme === 'dark' ? '#050505' : '#F7F7F8';
+
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
     root.dataset.tumTheme = theme;
-    root.dataset.tumBrowser = /SamsungBrowser/i.test(ua) ? 'samsung' : 'other';
-    root.style.colorScheme = theme;
+    root.dataset.tumBrowser = isSamsung ? 'samsung' : 'other';
+
+    /*
+      Chromium/Samsung Auto Dark pode recolorir a pagina quando ela declara
+      suporte generico a dark+light. "only" informa que a pagina ja fornece
+      o esquema ativo e que o navegador nao deve fabricar outro por cima.
+    */
+    root.style.setProperty('color-scheme', scheme, 'important');
+    root.style.setProperty('background-color', bg, 'important');
+
+    var colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+    if (colorSchemeMeta) colorSchemeMeta.setAttribute('content', scheme);
+    var supportedMeta = document.querySelector('meta[name="supported-color-schemes"]');
+    if (supportedMeta) supportedMeta.setAttribute('content', theme);
+    var themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', bg);
   } catch (_) {
     document.documentElement.classList.add('dark');
   }
@@ -39,16 +57,16 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="application-name" content="TUM" />
         <meta name="apple-mobile-web-app-title" content="TUM" />
         <meta name="theme-color" content="#050505" />
+        <meta name="darkreader-lock" />
 
         {/*
-          IMPORTANTE PARA SAMSUNG INTERNET:
-          declaramos os dois esquemas aqui, antes de qualquer CSS. O Samsung
-          Internet usa esta declaração para saber que o próprio site trata
-          claro/escuro e, nas configurações compatíveis, evita aplicar a
-          transformação automática de cores por cima do tema do TUM.
+          Anti Auto-Dark: começamos travados no dark (tema padrão) e o script
+          acima troca sincronamente para `only light` quando necessário.
+          Declarar dark+light ao mesmo tempo permitia que algumas versões do
+          Samsung Internet aplicassem uma segunda conversão de cores.
         */}
-        <meta name="color-scheme" content="dark light" />
-        <meta name="supported-color-schemes" content="dark light" />
+        <meta name="color-scheme" content="only dark" />
+        <meta name="supported-color-schemes" content="dark" />
 
         <script dangerouslySetInnerHTML={{ __html: EARLY_THEME_SCRIPT }} />
         <link rel="manifest" href="/manifest.webmanifest" />

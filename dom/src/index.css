@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark light;
+  color-scheme: only dark;
   --tum-bg: 18 18 18;
   --tum-surface: 30 30 30;
   --tum-surface-alt: 42 42 42;
@@ -13,11 +13,11 @@
 }
 
 html.dark {
-  color-scheme: dark;
+  color-scheme: only dark;
 }
 
 html.light {
-  color-scheme: light;
+  color-scheme: only light;
   --tum-bg: 244 244 245;
   --tum-surface: 255 255 255;
   --tum-surface-alt: 235 237 240;
@@ -56,9 +56,40 @@ body {
 html[data-tum-browser='samsung'],
 html[data-tum-browser='samsung'] body,
 html[data-tum-browser='samsung'] #root {
-  forced-color-adjust: none;
+  forced-color-adjust: none !important;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+}
+
+/*
+   Samsung Internet/Chromium Auto Dark:
+   `only` e importante aqui. Declarar os dois esquemas ao mesmo tempo pode
+   fazer algumas versoes do navegador reinterpretarem o amarelo, fundos e
+   controles mesmo quando o TUM ja aplicou o seu proprio tema.
+*/
+html[data-tum-browser='samsung'].dark,
+html[data-tum-browser='samsung'].dark body,
+html[data-tum-browser='samsung'].dark #root {
+  color-scheme: only dark !important;
+  background-color: #050505 !important;
+}
+
+html[data-tum-browser='samsung'].light,
+html[data-tum-browser='samsung'].light body,
+html[data-tum-browser='samsung'].light #root {
+  color-scheme: only light !important;
+  background-color: #f7f7f8 !important;
+}
+
+/* Midia do app nunca deve receber filtro/blend automatico do navegador. */
+html[data-tum-browser='samsung'] img,
+html[data-tum-browser='samsung'] svg,
+html[data-tum-browser='samsung'] canvas,
+html[data-tum-browser='samsung'] video,
+html[data-tum-browser='samsung'] picture {
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  forced-color-adjust: none !important;
 }
 
 /* O gradiente de uma única cor funciona como camada de fundo autoral e reduz
@@ -89,7 +120,8 @@ html[data-tum-browser='samsung'] input,
 html[data-tum-browser='samsung'] textarea,
 html[data-tum-browser='samsung'] select,
 html[data-tum-browser='samsung'] button {
-  forced-color-adjust: none;
+  forced-color-adjust: none !important;
+  color-scheme: inherit !important;
 }
 
 /* iPhone faz zoom automático ao focar campos menores que 16 px. Mantemos o
@@ -540,11 +572,11 @@ html.light .tum-auth-page {
    utilitários text-white/bg-black herdados do dark mode.
    -------------------------------------------------------------------------- */
 html.dark {
-  color-scheme: dark;
+  color-scheme: only dark;
 }
 
 html.light {
-  color-scheme: light;
+  color-scheme: only light;
   --tum-bg: 247 247 248;
   --tum-surface: 255 255 255;
   --tum-surface-alt: 246 247 248;

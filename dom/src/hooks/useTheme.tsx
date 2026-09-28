@@ -42,24 +42,27 @@ function applyDocumentTheme(theme: Theme) {
   root.dataset.tumBrowser = /SamsungBrowser/i.test(ua) ? 'samsung' : 'other';
 
   /*
-    A meta tag fica SEMPRE com os dois temas suportados. Isso é proposital:
-    Samsung Internet usa a declaração para preferir o tema fornecido pelo site
-    em vez de aplicar o Force Dark sobre as cores do TUM.
-
-    O esquema efetivamente ativo continua sendo controlado pelo app no elemento
-    raiz, então o botão de tema do TUM segue mandando na interface.
+    Trava o esquema ATIVO em vez de anunciar dark+light simultaneamente.
+    `only light`/`only dark` e a forma suportada pelo Chromium para dizer que
+    o site ja cuida das cores e nao precisa de Auto Dark/Force Dark adicional.
+    Isso evita o segundo processamento de cor observado no Samsung Internet.
   */
-  ensureMeta('color-scheme', 'dark light');
-  ensureMeta('supported-color-schemes', 'dark light');
-  ensureMeta('theme-color', theme === 'dark' ? '#050505' : '#F7F7F8');
+  const scheme = `only ${theme}`;
+  const background = theme === 'dark' ? '#050505' : '#F7F7F8';
 
-  root.style.colorScheme = theme;
-  root.style.backgroundColor = theme === 'dark' ? '#050505' : '#F7F7F8';
+  ensureMeta('color-scheme', scheme);
+  // Compatibilidade com engines Samsung antigas que ainda consultam esta meta.
+  ensureMeta('supported-color-schemes', theme);
+  ensureMeta('theme-color', background);
+  ensureMeta('darkreader-lock', '');
+
+  root.style.setProperty('color-scheme', scheme, 'important');
+  root.style.setProperty('background-color', background, 'important');
 
   if (document.body) {
     document.body.dataset.tumTheme = theme;
-    document.body.style.colorScheme = theme;
-    document.body.style.backgroundColor = theme === 'dark' ? '#050505' : '#F7F7F8';
+    document.body.style.setProperty('color-scheme', scheme, 'important');
+    document.body.style.setProperty('background-color', background, 'important');
   }
 }
 
