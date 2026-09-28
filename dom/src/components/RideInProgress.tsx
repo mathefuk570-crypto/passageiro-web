@@ -36,7 +36,15 @@ import { useNativeActions } from '../lib/nativeActions';
 import { finishPassengerSafetyRecording, listMySafetyRecordings, loadSafetyRecordingState, preparePassengerSafetyRecording, type SafetyRecordingRow } from '../lib/safetyRecording';
 import { submitPassengerUserReport, USER_REPORT_REASONS, type UserReportReason } from '../lib/userReports';
 import { supabase } from '../lib/supabase';
-import { createOrLoadRidePixCheckout, loadRidePixPayment, type RidePixPayment } from '../lib/ridePayments';
+import {
+  createOrLoadRidePixCheckout,
+  isRidePaymentSettlementComplete,
+  loadRidePaymentSettlement,
+  loadRidePixPayment,
+  ridePaymentSettlementMethodLabel,
+  type RidePaymentSettlement,
+  type RidePixPayment,
+} from '../lib/ridePayments';
 
 interface Props {
   profile: Profile;
@@ -180,6 +188,10 @@ export default function RideInProgress({
   const [waitingElapsedSeconds, setWaitingElapsedSeconds] = useState(0);
   const [pixPaymentMode, setPixPaymentMode] = useState<'idle' | 'loading' | 'asaas' | 'direct' | 'error'>('idle');
   const [ridePixPayment, setRidePixPayment] = useState<RidePixPayment | null>(null);
+  const [ridePaymentSettlement, setRidePaymentSettlement] =
+    useState<RidePaymentSettlement | null>(null);
+  const [ridePaymentSettlementError, setRidePaymentSettlementError] =
+    useState<string | null>(null);
   const [pixPaymentError, setPixPaymentError] = useState<string | null>(null);
   const [pixCodeCopied, setPixCodeCopied] = useState(false);
   const [pixRefreshing, setPixRefreshing] = useState(false);
@@ -189,6 +201,7 @@ export default function RideInProgress({
   const rideIdRef = useRef(ride.id);
   const safetyEffectSequenceRef = useRef(0);
   const paymentPollInFlightRef = useRef(false);
+  const settlementPollInFlightRef = useRef(false);
   const liveFareInFlightRef = useRef(false);
   rideIdRef.current = ride.id;
 
@@ -205,6 +218,8 @@ export default function RideInProgress({
     setRidePixPayment(null);
     setPixPaymentError(null);
     setPixCodeCopied(false);
+    setRidePaymentSettlement(null);
+    setRidePaymentSettlementError(null);
 
     if (ride.status === 'completed' && isPixPayment) {
       void prepareRidePixPayment();
@@ -212,7 +227,12 @@ export default function RideInProgress({
   }, [ride.id, ride.status, isPixPayment]);
 
   useEffect(() => {
-    if (pixPaymentMode !== 'asaas' || !ridePixPayment?.id || ridePixPayment.paid_at) return;
+    if (
+      pixPaymentMode !== 'asaas' ||
+      !ridePixPayment?.id ||
+      ridePixPayment.paid_at ||
+      isRidePaymentSettlementComplete(ridePaymentSettlement)
+    ) return;
 
     let active = true;
     const refresh = async () => {
@@ -240,7 +260,57 @@ export default function RideInProgress({
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [pixPaymentMode, ridePixPayment?.id, ridePixPayment?.paid_at]);
+  }, [
+    pixPaymentMode,
+    ridePixPayment?.id,
+    ridePixPayment?.paid_at,
+    ridePaymentSettlement?.status,
+  ]);
+
+  useEffect(() => {
+    if (ride.status !== 'completed' || !isPixPayment) return;
+
+    let active = true;
+
+    const refreshSettlement = async () => {
+      if (settlementPollInFlightRef.current) return;
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+      settlementPollInFlightRef.current = true;
+      try {
+        const settlement = await loadRidePaymentSettlement(ride.id);
+        if (!active || rideIdRef.current !== ride.id) return;
+        setRidePaymentSettlement(settlement);
+        setRidePaymentSettlementError(null);
+      } catch (error) {
+        if (!active || rideIdRef.current !== ride.id) return;
+        setRidePaymentSettlementError(
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível consultar a confirmação do pagamento.',
+        );
+      } finally {
+        settlementPollInFlightRef.current = false;
+      }
+    };
+
+    void refreshSettlement();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      if (isRidePaymentSettlementComplete(ridePaymentSettlement)) return;
+      void refreshSettlement();
+    }, 2200);
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshSettlement();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [ride.id, ride.status, isPixPayment, ridePaymentSettlement?.status]);
 
   useEffect(() => {
     setReportOpen(false);
@@ -584,8 +654,13 @@ export default function RideInProgress({
     if (!ridePixPayment?.id || pixRefreshing) return;
     setPixRefreshing(true);
     try {
-      const payment = await loadRidePixPayment(ridePixPayment.id);
+      const [payment, settlement] = await Promise.all([
+        loadRidePixPayment(ridePixPayment.id),
+        loadRidePaymentSettlement(ride.id),
+      ]);
       if (payment) setRidePixPayment(payment);
+      setRidePaymentSettlement(settlement);
+      setRidePaymentSettlementError(null);
     } catch (error) {
       setPixPaymentError(error instanceof Error ? error.message : 'Não foi possível atualizar o pagamento.');
     } finally {
@@ -613,19 +688,43 @@ export default function RideInProgress({
 
 
   async function submitRating() {
-    if (isPixPayment && pixPaymentMode === 'asaas' && !ridePixPayment?.paid_at) {
+    const settlementComplete = isRidePaymentSettlementComplete(
+      ridePaymentSettlement,
+    );
+
+    if (isPixPayment && ridePaymentSettlement?.status === 'review') {
       setTumAlert({
-        title: 'Pagamento pendente',
-        message: 'Confirme o Pix da corrida antes de finalizar a avaliação.',
+        title: 'Pagamento em revisão',
+        message: 'O TUM identificou duas confirmações diferentes para este pagamento. Aguarde a conferência antes de solicitar outra corrida.',
         variant: 'warning',
       });
       return;
     }
 
-    if (isPixPayment && (pixPaymentMode === 'loading' || pixPaymentMode === 'error' || pixPaymentMode === 'idle')) {
+    if (
+      isPixPayment &&
+      pixPaymentMode === 'asaas' &&
+      !ridePixPayment?.paid_at &&
+      !settlementComplete
+    ) {
+      setTumAlert({
+        title: 'Pagamento pendente',
+        message: 'O TUM ainda está aguardando a confirmação do Pix ou do motorista.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    if (
+      isPixPayment &&
+      !settlementComplete &&
+      (pixPaymentMode === 'loading' ||
+        pixPaymentMode === 'error' ||
+        pixPaymentMode === 'idle')
+    ) {
       setTumAlert({
         title: 'Pix ainda não preparado',
-        message: 'Aguarde a geração do Pix ou tente novamente antes de concluir.',
+        message: 'Aguarde a geração do Pix ou a confirmação do motorista antes de concluir.',
         variant: 'warning',
       });
       return;
@@ -734,11 +833,21 @@ export default function RideInProgress({
         : `data:image/png;base64,${ridePixPayment.pix_qr_code_base64}`
       : null;
     const pixPaid = Boolean(ridePixPayment?.paid_at);
+    const paymentSettled =
+      pixPaid || isRidePaymentSettlementComplete(ridePaymentSettlement);
+    const manualPaymentSettled =
+      ridePaymentSettlement?.status === 'manual_paid';
+    const providerPaymentSettled =
+      pixPaid || ridePaymentSettlement?.status === 'provider_paid';
+    const paymentInReview = ridePaymentSettlement?.status === 'review';
     const ratingBlockedByPix = isPixPayment && (
-      pixPaymentMode === 'loading' ||
-      pixPaymentMode === 'error' ||
-      pixPaymentMode === 'idle' ||
-      (pixPaymentMode === 'asaas' && !pixPaid)
+      paymentInReview ||
+      (!paymentSettled && (
+        pixPaymentMode === 'loading' ||
+        pixPaymentMode === 'error' ||
+        pixPaymentMode === 'idle' ||
+        pixPaymentMode === 'asaas'
+      ))
     );
 
     return (
@@ -797,14 +906,14 @@ export default function RideInProgress({
               </div>
             )}
 
-            {isPixPayment && pixPaymentMode === 'loading' && (
+            {isPixPayment && pixPaymentMode === 'loading' && !paymentSettled && (
               <div className="mt-2 flex items-center gap-2 rounded-xl border border-tum-yellow/20 bg-tum-yellow/[0.06] px-3 py-2.5 text-[11px] font-semibold text-white/70">
                 <RefreshCw size={15} className="shrink-0 animate-spin text-tum-yellow" />
                 Preparando o Pix seguro da corrida...
               </div>
             )}
 
-            {isPixPayment && pixPaymentMode === 'error' && (
+            {isPixPayment && pixPaymentMode === 'error' && !paymentSettled && (
               <div className="mt-2 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2.5">
                 <p className="text-[11px] font-bold text-red-200">{pixPaymentError || 'Não foi possível gerar o Pix.'}</p>
                 <button
@@ -841,15 +950,27 @@ export default function RideInProgress({
             )}
 
             {isPixPayment && pixPaymentMode === 'asaas' && ridePixPayment && (
-              <div className={`mt-2 rounded-2xl border px-3 py-3 ${pixPaid ? 'border-emerald-500/25 bg-emerald-500/10' : 'border-tum-yellow/25 bg-tum-yellow/[0.06]'}`}>
-                {pixPaid ? (
+              <div className={`mt-2 rounded-2xl border px-3 py-3 ${paymentSettled ? 'border-emerald-500/25 bg-emerald-500/10' : paymentInReview ? 'border-red-500/25 bg-red-500/10' : 'border-tum-yellow/25 bg-tum-yellow/[0.06]'}`}>
+                {providerPaymentSettled || manualPaymentSettled ? (
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
                       <Check size={19} strokeWidth={3} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-black text-emerald-200">Pagamento confirmado</p>
-                      <p className="text-[10px] text-emerald-100/65">O TUM já recebeu a confirmação do Pix.</p>
+                      <p className="text-[10px] text-emerald-100/65">
+                        {manualPaymentSettled
+                          ? `O motorista confirmou recebimento em ${ridePaymentSettlementMethodLabel(ridePaymentSettlement?.settled_method)}. Você já está liberado.`
+                          : 'O TUM confirmou o Pix automaticamente. Você já está liberado.'}
+                      </p>
+                    </div>
+                  </div>
+                ) : paymentInReview ? (
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle size={19} className="mt-0.5 shrink-0 text-red-300" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-black text-red-200">Pagamento em revisão</p>
+                      <p className="text-[10px] text-red-100/65">O TUM identificou duas confirmações diferentes. Não faça outro pagamento.</p>
                     </div>
                   </div>
                 ) : (
@@ -899,6 +1020,12 @@ export default function RideInProgress({
                     </div>
                   </>
                 )}
+              </div>
+            )}
+
+            {isPixPayment && ridePaymentSettlementError && (
+              <div className="mt-2 rounded-xl border border-red-500/20 bg-red-500/[0.08] px-3 py-2">
+                <p className="text-[10px] font-bold text-red-200">{ridePaymentSettlementError}</p>
               </div>
             )}
           </div>
@@ -962,9 +1089,11 @@ export default function RideInProgress({
             >
               {submittingRating
                 ? 'Enviando avaliação...'
-                : ratingBlockedByPix
-                  ? 'Aguardando pagamento Pix'
-                  : 'Enviar avaliação'}
+                : paymentInReview
+                  ? 'Pagamento em revisão'
+                  : ratingBlockedByPix
+                    ? 'Aguardando confirmação do pagamento'
+                    : 'Enviar avaliação'}
             </button>
           </div>
         </div>

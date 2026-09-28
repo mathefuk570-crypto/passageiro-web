@@ -77,3 +77,72 @@ export async function loadRidePixPayment(paymentId: string): Promise<RidePixPaym
   if (error) throw new Error(error.message);
   return (data as RidePixPayment | null) ?? null;
 }
+
+export type RidePaymentSettlementStatus =
+  | 'not_required'
+  | 'pending'
+  | 'provider_confirmed'
+  | 'provider_paid'
+  | 'manual_paid'
+  | 'review'
+  | 'cancelled';
+
+export type RidePaymentSettlement = {
+  exists?: boolean;
+  ride_id?: string;
+  amount?: number;
+  status: RidePaymentSettlementStatus;
+  settled_method?: string | null;
+  settled_at?: string | null;
+  provider_paid_at?: string | null;
+  manual_confirmed_at?: string | null;
+  provider_status?: string | null;
+  paid_at?: string | null;
+};
+
+export async function loadRidePaymentSettlement(
+  rideId: string,
+): Promise<RidePaymentSettlement> {
+  const { data, error } = await supabase.rpc(
+    'get_my_ride_payment_status_tum',
+    { p_ride_id: rideId },
+  );
+
+  if (error) throw new Error(error.message);
+
+  const value = (data ?? {}) as Record<string, unknown>;
+  return {
+    ...value,
+    status: String(value.status ?? 'not_required') as RidePaymentSettlementStatus,
+  } as RidePaymentSettlement;
+}
+
+export function isRidePaymentSettlementComplete(
+  settlement: RidePaymentSettlement | null,
+): boolean {
+  return Boolean(
+    settlement &&
+      (settlement.status === 'provider_paid' ||
+        settlement.status === 'manual_paid' ||
+        settlement.status === 'not_required'),
+  );
+}
+
+export function ridePaymentSettlementMethodLabel(
+  value: string | null | undefined,
+): string {
+  switch (value) {
+    case 'cash':
+      return 'dinheiro';
+    case 'card':
+      return 'cartão';
+    case 'direct_pix':
+      return 'Pix direto';
+    case 'other':
+      return 'outro meio';
+    case 'pix_tum':
+      return 'Pix TUM';
+    default:
+      return 'outro meio';
+  }
+}

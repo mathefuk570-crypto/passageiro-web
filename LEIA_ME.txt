@@ -1,19 +1,22 @@
-TUM Passageiro — ajuste da animação da rota (25/09/2026)
+TUM PASSAGEIRO — LIBERAR APÓS PAGAMENTO POR OUTRO MEIO
+28/09/2026
 
-Objetivo deste patch:
-- remover o feixe/faixa branca grande;
-- usar somente um pequeno reflexo branco percorrendo a rota;
-- sem borda, sem traço preto, sem linha branca comprida;
-- núcleo branco pequeno + halo muito suave/transparente;
-- movimento contínuo acompanhando a geometria da rota;
-- manter cor, espessura, contorno e opacidade configurados no painel ADM.
+Problema corrigido:
+- Motorista confirma "Recebi por outro meio" (Dinheiro, Cartão, Pix direto ou Outro).
+- Backend salva corretamente status manual_paid.
+- Passageiro continuava preso na tela de pagamento porque só observava o Pix/Asaas.
 
-Arquivos alterados:
-- dom/src/components/MapboxMapView.tsx
-- dom/src/components/RasterMapView.tsx
-- dom/src/components/GoogleMapView.tsx
+Correção:
+- Passageiro consulta get_my_ride_payment_status_tum enquanto a corrida finalizada aguarda pagamento.
+- manual_paid e provider_paid passam a liberar a tela.
+- Atualização automática a cada ~2,2 segundos enquanto a tela estiver visível.
+- Reconsulta ao voltar para o app/aba.
+- Botão de avaliação é liberado assim que a confirmação chegar.
+- Exibe ao passageiro qual meio foi confirmado pelo motorista.
+- Mantém as adaptações PWA/gravação web existentes.
 
-Aplicação:
-Extraia este ZIP por cima de C:\TUM\Passageiro e confirme a substituição.
-Depois, no Metro, pressione r para recarregar.
-Não precisa rodar npm install nem reinstalar o APK para este teste.
+Arquivos:
+- dom/src/components/RideInProgress.tsx
+- dom/src/lib/ridePayments.ts
+
+Aplicar por cima do projeto Passageiro/PWA e substituir os arquivos existentes.
