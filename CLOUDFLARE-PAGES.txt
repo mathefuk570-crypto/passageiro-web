@@ -1,0 +1,13 @@
+TUM Passageiro PWA - Cloudflare Pages
+
+Build command:
+  npm run build
+
+Build output directory:
+  dist
+
+Root directory:
+  /  (raiz do repositorio, onde esta o package.json)
+
+O script "build" chama "npm run build:web", que executa:
+  expo export --platform web --clear

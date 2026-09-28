@@ -5,15 +5,16 @@
   "private": true,
   "scripts": {
     "dev": "expo start --web",
+    "build": "npm run build:web",
+    "build:web": "expo export --platform web --clear",
+    "web": "expo start --web",
+    "dev:native": "expo start",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "prepare:play": "node scripts/preparePlayManifest.cjs",
-    "check:play": "node scripts/checkPlayManifest.cjs",
-    "web": "expo start --web",
-    "build:web": "expo export --platform web --clear",
-    "dev:native": "expo start"
+    "check:play": "node scripts/checkPlayManifest.cjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
