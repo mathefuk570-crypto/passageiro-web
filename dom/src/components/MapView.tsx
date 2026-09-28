@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useTumMapConfig } from '../lib/mapConfig';
 import { useTheme } from '../hooks/useTheme';
 import GoogleMapView from './GoogleMapView';
-import RasterMapView from './RasterMapView';
 import MapboxMapView from './MapboxMapView';
 import type { MapViewProps } from './mapTypes';
 
@@ -12,6 +11,28 @@ export default function MapView(props: MapViewProps) {
   const config = useTumMapConfig(props.cityId ?? null);
   const { theme } = useTheme();
   const [googleFailed, setGoogleFailed] = useState(false);
+  const [RasterMapView, setRasterMapView] = useState<React.ComponentType<MapViewProps> | null>(null);
+
+  // Leaflet acessa `window` no carregamento do módulo. O Expo Router faz uma
+  // renderização no Node antes de entregar a página ao navegador; por isso o
+  // RasterMapView precisa ser carregado somente depois que o cliente montar.
+  useEffect(() => {
+    let active = true;
+
+    if (typeof window === 'undefined') return () => { active = false; };
+
+    import('./RasterMapView')
+      .then((module) => {
+        if (active) setRasterMapView(() => module.default);
+      })
+      .catch((error) => {
+        console.error('[TUM][MAP] falha ao carregar renderer raster', error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     setGoogleFailed(false);
@@ -66,6 +87,19 @@ export default function MapView(props: MapViewProps) {
       ].join(':');
 
       console.info('[TUM][MAP] renderer=raster-android-hidpi');
+      if (!RasterMapView) {
+        return (
+          <div
+            aria-hidden="true"
+            style={{
+              width: '100%',
+              height: '100%',
+              background: theme === 'dark' ? '#171717' : '#f3f4f6',
+            }}
+          />
+        );
+      }
+
       return <RasterMapView key={rasterAndroidKey} {...props} />;
     }
 
@@ -92,5 +126,19 @@ export default function MapView(props: MapViewProps) {
   ].join(':');
 
   console.warn('[TUM][MAP] renderer=raster-emergency');
+
+  if (!RasterMapView) {
+    return (
+      <div
+        aria-hidden="true"
+        style={{
+          width: '100%',
+          height: '100%',
+          background: theme === 'dark' ? '#171717' : '#f3f4f6',
+        }}
+      />
+    );
+  }
+
   return <RasterMapView key={rasterKey} {...props} />;
 }

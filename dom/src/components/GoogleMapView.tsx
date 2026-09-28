@@ -4,6 +4,7 @@ import { useTheme } from '../hooks/useTheme';
 import { ensureGoogleMapsLoaded } from '../lib/mapbox';
 import { useTumMapConfig } from '../lib/mapConfig';
 import type { MapController, MapPoiSelection, MapViewProps } from './mapTypes';
+import { mapViewportPadding } from './mapViewport';
 
 const ASSET_BASE = process.env.EXPO_BASE_URL ?? '/';
 
@@ -43,6 +44,7 @@ export default function GoogleMapView({
   queuedCurrentDestination = null,
   onMapClick,
   onPoiSelect,
+  onLocationDragSelect,
   registerMap,
   onProviderError,
 }: MapViewProps & { onProviderError?: (error: unknown) => void }) {
@@ -58,6 +60,8 @@ export default function GoogleMapView({
   const queuedNextRouteRef = useRef<any>(null);
   const queuedNextOutlineRef = useRef<any>(null);
   const queuedDestinationMarkerRef = useRef<any>(null);
+  const dragLocationMarkerRef = useRef<any>(null);
+  const onLocationDragSelectRef = useRef(onLocationDragSelect);
   const fittedQueuedRouteRef = useRef<string | null>(null);
   const staticMarkersRef = useRef<any[]>([]);
   const driverMarkersRef = useRef<Map<string, { marker: any; lng: number; lat: number }>>(new Map());
@@ -66,6 +70,14 @@ export default function GoogleMapView({
   const { theme } = useTheme();
   const config = useTumMapConfig(cityId ?? null);
   const visual = config.passenger_visual_config;
+
+  useEffect(() => {
+    onLocationDragSelectRef.current = onLocationDragSelect;
+    if (!onLocationDragSelect && dragLocationMarkerRef.current) {
+      dragLocationMarkerRef.current.setMap?.(null);
+      dragLocationMarkerRef.current = null;
+    }
+  }, [onLocationDragSelect]);
 
   const googleStyles = useMemo(
     () => theme === 'dark' ? config.passenger_google_style_dark : config.passenger_google_style_light,
@@ -108,10 +120,80 @@ export default function GoogleMapView({
         };
         registerMap?.(controller);
 
+        const confirmDragLocationMarker = async (marker: any) => {
+          const callback = onLocationDragSelectRef.current;
+          if (!callback) return;
+
+          const position = marker.getPosition?.();
+          const lng = position?.lng?.();
+          const lat = position?.lat?.();
+          if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+
+          let address: string | null = null;
+          try {
+            const { Geocoder } = await google.maps.importLibrary('geocoding');
+            const geocoder = new Geocoder();
+            const { results = [] } = await geocoder.geocode({ location: { lat, lng } });
+            address = results[0]?.formatted_address || null;
+          } catch (error) {
+            console.warn('[TUM][GOOGLE] reverse geocode do pin:', error);
+          }
+
+          marker.setMap?.(null);
+          if (dragLocationMarkerRef.current === marker) {
+            dragLocationMarkerRef.current = null;
+          }
+
+          callback({
+            name: address || 'Local selecionado',
+            address,
+            category: null,
+            openingHours: null,
+            coordinates: [lng, lat],
+          });
+        };
+
+        const ensureDragLocationMarker = (lng: number, lat: number) => {
+          if (!onLocationDragSelectRef.current) return false;
+
+          if (dragLocationMarkerRef.current) {
+            dragLocationMarkerRef.current.setPosition?.({ lat, lng });
+            return true;
+          }
+
+          const pinWidth = Math.round(Math.max(20, Math.min(28, Number(config.passenger_visual_config.pinSize || 24))));
+          const pinHeight = Math.round(pinWidth * (595 / 419));
+          const marker = new google.maps.Marker({
+            map,
+            position: { lat, lng },
+            draggable: true,
+            zIndex: 1600,
+            icon: {
+              url: publicAsset('map-markers/tum-location-pin.png'),
+              scaledSize: new google.maps.Size(pinWidth, pinHeight),
+              anchor: new google.maps.Point(Math.round(pinWidth / 2), pinHeight - 1),
+            },
+          });
+
+          marker.addListener('dragend', () => {
+            void confirmDragLocationMarker(marker);
+          });
+          marker.addListener('click', () => {
+            void confirmDragLocationMarker(marker);
+          });
+
+          dragLocationMarkerRef.current = marker;
+          return true;
+        };
+
         map.addListener('click', async (event: any) => {
           const lng = event?.latLng?.lng?.();
           const lat = event?.latLng?.lat?.();
           if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+
+          if (ensureDragLocationMarker(lng, lat)) {
+            return;
+          }
 
           if (event.placeId && onPoiSelect) {
             try {
@@ -142,7 +224,11 @@ export default function GoogleMapView({
     }
 
     void init();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      dragLocationMarkerRef.current?.setMap?.(null);
+      dragLocationMarkerRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -374,16 +460,32 @@ export default function GoogleMapView({
 
     const bounds = new google.maps.LatLngBounds();
     path.forEach((point) => bounds.extend(point));
-    map.fitBounds(bounds, 70);
+
+    const driverLng = Number(rideDriver?.longitude);
+    const driverLat = Number(rideDriver?.latitude);
+    if (rideDriver && Number.isFinite(driverLng) && Number.isFinite(driverLat)) {
+      bounds.extend({ lat: driverLat, lng: driverLng });
+    }
+    if (rideDriver && origin && Number.isFinite(origin[0]) && Number.isFinite(origin[1])) {
+      bounds.extend({ lat: origin[1], lng: origin[0] });
+    }
+
+    const fitRouteViewport = () => {
+      const padding = mapViewportPadding(containerRef.current, Boolean(rideDriver));
+      map.fitBounds(bounds, padding);
+    };
+    fitRouteViewport();
+    const cameraFrame = requestAnimationFrame(fitRouteViewport);
 
     return () => {
+      cancelAnimationFrame(cameraFrame);
       if (animationFrame) cancelAnimationFrame(animationFrame);
       routeGlowRef.current?.setMap?.(null);
       routeRef.current?.setMap?.(null);
       outlineRef.current?.setMap?.(null);
       routeHighlightRef.current?.setMap?.(null);
     };
-  }, [routeCoords, config.config_revision, theme]);
+  }, [routeCoords, rideDriver?.latitude, rideDriver?.longitude, origin, config.config_revision, theme]);
 
   useEffect(() => {
     const google = googleRef.current;
@@ -465,7 +567,7 @@ export default function GoogleMapView({
       if (identity && fittedQueuedRouteRef.current !== identity) {
         const bounds = new google.maps.LatLngBounds();
         allPoints.forEach((point) => bounds.extend(point));
-        map.fitBounds(bounds, 70);
+        map.fitBounds(bounds, mapViewportPadding(containerRef.current, true));
         fittedQueuedRouteRef.current = identity;
       }
     } else {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Tag, Loader2, Check, Zap, Route, ShieldCheck, Banknote, QrCode, Clock3, Navigation2, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Tag, Loader2, Check, Zap, Route, ShieldCheck, Banknote, QrCode, Clock3, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react';
 import type { Address, Category } from '../lib/types';
 import {
   formatBRL,
@@ -162,7 +162,8 @@ export default function RideRequestModal({
     useState<CategoryOption | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+  const [panelStep, setPanelStep] = useState<'category' | 'payment'>('category');
   const [couponInput, setCouponInput] = useState('');
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -179,6 +180,8 @@ export default function RideRequestModal({
         setCityId(null);
         setCategories([]);
         setSelectedCategory(null);
+        setPaymentMethod(null);
+        setPanelStep('category');
         setCategoriesError(null);
         setLoadingCategories(false);
         return;
@@ -189,6 +192,8 @@ export default function RideRequestModal({
       setCityId(null);
       setCategories([]);
       setSelectedCategory(null);
+      setPaymentMethod(null);
+      setPanelStep('category');
 
       try {
         const [lng, lat] = origin.coordinates;
@@ -341,14 +346,11 @@ export default function RideRequestModal({
         }
 
         setCategories(loadedCategories);
-        const compatibleCategories = loadedCategories.filter(
-          (item) =>
-            stops.length === 0 ||
-            (item.stops_enabled && stops.length <= item.max_stops),
-        );
-        // A ordem/prioridade vem do display_order configurado no painel ADM.
-        // A primeira categoria compatível também é a seleção padrão.
-        setSelectedCategory(compatibleCategories[0] ?? null);
+        // A ordem/prioridade continua vindo do display_order configurado no painel ADM,
+        // mas a categoria não fica mais pré-selecionada para o passageiro escolher de forma explícita.
+        setSelectedCategory(null);
+        setPaymentMethod(null);
+        setPanelStep('category');
       } catch (caughtError) {
         console.error('Erro ao carregar categorias:', caughtError);
         if (!cancelled) {
@@ -523,7 +525,8 @@ export default function RideRequestModal({
       directDurationMinutes === null ||
       !selectedCategory ||
       !selectedCategorySupportsStops ||
-      !cityId
+      !cityId ||
+      !paymentMethod
     ) {
       return;
     }
@@ -571,9 +574,6 @@ export default function RideRequestModal({
   }
 
 
-  const primaryCategories = categories.slice(0, 2);
-  const secondaryCategories = categories.slice(2);
-
   function categoryUi(item: CategoryOption) {
     const compatible =
       stops.length === 0 ||
@@ -601,13 +601,37 @@ export default function RideRequestModal({
     };
   }
 
-  function categorySubtitle(name: string) {
-    const normalized = name.toLowerCase();
-    if (normalized.includes('black')) return 'Conforto premium';
-    if (normalized.includes('moto')) return 'Mais ágil no trânsito';
-    if (normalized.includes('dela')) return 'De mulher para mulher';
-    return 'Boa escolha para o dia a dia';
+  function compactAddress(value: string | undefined, fallback: string): string {
+    const clean = String(value || '').trim();
+    if (!clean) return fallback;
+    const firstPart = clean.split(',')[0]?.trim();
+    return firstPart || clean;
   }
+
+  function getCategorySubtitle(name: string): string {
+    const normalized = name.toLowerCase();
+
+    if (normalized.includes('pop')) return 'Boa escolha para o dia a dia';
+    if (normalized.includes('mo')) return 'Mais agilidade pra você';
+    if (normalized.includes('dela')) return 'Viagens feitas para elas';
+    if (normalized.includes('black')) return 'Mais conforto em cada viagem';
+
+    return 'Escolha uma opção para continuar';
+  }
+
+  const paymentOptions = [
+    {
+      name: 'Dinheiro',
+      icon: Banknote,
+      description: 'Pague ao motorista quando a corrida terminar',
+    },
+    {
+      name: 'Pix',
+      icon: QrCode,
+      description: 'O Pix é disponibilizado ao final da corrida',
+    },
+  ] as const;
+
 
   return (
     <div className="tum-ride-options absolute inset-x-0 bottom-0 z-40 flex max-h-[88vh] flex-col overflow-hidden rounded-t-[30px] border-t border-white/10 bg-tum-dark-2/[0.98] shadow-[0_-24px_70px_rgba(0,0,0,.42)] backdrop-blur-xl">
@@ -616,275 +640,364 @@ export default function RideRequestModal({
         <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={onClose}
-            className="tum-press flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.045] transition hover:bg-white/[0.08]"
+            onClick={() => {
+              if (panelStep === 'payment') {
+                setPanelStep('category');
+                return;
+              }
+              onClose();
+            }}
+            className="tum-press flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10"
           >
             <ArrowLeft size={17} className="text-white" />
           </button>
+
           <div className="text-center">
-            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-tum-yellow/[0.75]">Sua viagem</p>
-            <h2 className="text-[16px] font-black text-white">Opções de corrida</h2>
+            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-tum-yellow/80">Sua viagem</p>
+            <h2 className="text-[16px] font-black text-white">
+              {panelStep === 'payment' ? 'Forma de pagamento' : 'Opções de corrida'}
+            </h2>
           </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03]">
+
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5">
             <ShieldCheck size={16} className="text-tum-yellow" />
           </div>
         </div>
       </div>
 
       <div className="scrollbar-hide overflow-y-auto px-4 pb-3">
-        <div className="mb-2 rounded-2xl border border-white/[0.08] bg-black/15 px-3 py-2.5">
-          <div className="flex gap-2.5">
-            <div className="flex flex-col items-center pt-0.5">
-              <span className="h-2.5 w-2.5 rounded-full border-2 border-tum-yellow bg-tum-dark-2" />
-              <span className="my-1 h-5 w-px bg-white/15" />
-              <Navigation2 size={12} className="text-tum-yellow" />
-            </div>
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-wide text-white/[0.35]">Embarque</p>
-                <p className="truncate text-[11px] font-semibold text-white/[0.80]">{origin?.place_name || 'Origem'}</p>
+        {panelStep === 'category' ? (
+          <>
+            <div className="mb-2.5 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-tum-yellow/10 text-tum-yellow">
+                <Route size={17} strokeWidth={2.5} />
               </div>
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-wide text-white/[0.35]">Destino</p>
-                <p className="truncate text-[11px] font-semibold text-white/[0.80]">{destination?.place_name || 'Destino'}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-bold text-white/80">
+                  <span className="truncate">{compactAddress(origin?.place_name, 'Origem')}</span>
+                  <span className="shrink-0 text-tum-yellow">→</span>
+                  <span className="truncate">{compactAddress(destination?.place_name, 'Destino')}</span>
+                </div>
+                <p className="mt-1 text-[10px] font-semibold text-white/40">
+                  {stops.length > 0 ? `${stops.length} parada${stops.length > 1 ? 's' : ''} · ` : ''}
+                  Tempo e distância estimados
+                </p>
               </div>
-              {stops.length > 0 && (
-                <p className="text-[10px] font-semibold text-tum-yellow/[0.75]">+ {stops.length} parada{stops.length > 1 ? 's' : ''}</p>
+              {distanceKm !== null && durationMinutes !== null && (
+                <div className="shrink-0 text-right">
+                  <div className="flex items-center justify-end gap-1 text-[14px] font-black text-white">
+                    <Clock3 size={13} className="text-tum-yellow" />
+                    {Math.ceil(durationMinutes)} min
+                  </div>
+                  <p className="mt-0.5 text-[10px] font-bold text-white/40">{distanceKm.toFixed(1)} km</p>
+                </div>
               )}
             </div>
-            {distanceKm !== null && durationMinutes !== null && (
-              <div className="shrink-0 text-right">
-                <p className="text-[11px] font-black text-white">{distanceKm.toFixed(1)} km</p>
-                <div className="mt-0.5 flex items-center justify-end gap-1 text-[9px] font-semibold text-white/[0.40]"><Clock3 size={10} /> {Math.ceil(durationMinutes)} min</div>
+
+            {loadingCategories && (
+              <div className="space-y-2 py-1">
+                <div className="tum-skeleton h-[88px] rounded-[24px]" />
+                <div className="tum-skeleton h-[88px] rounded-[24px]" />
+                <div className="tum-skeleton h-[88px] rounded-[24px]" />
+                <div className="flex items-center justify-center gap-2 pt-1 text-xs text-white/45">
+                  <Loader2 size={14} className="animate-spin text-tum-yellow" />
+                  Preparando opções...
+                </div>
               </div>
             )}
-          </div>
-        </div>
 
-        {loadingCategories && (
-          <div className="space-y-2 py-1">
-            <div className="tum-skeleton h-[64px] rounded-2xl" />
-            <div className="tum-skeleton h-[64px] rounded-2xl" />
-            <div className="grid grid-cols-2 gap-2">
-              <div className="tum-skeleton h-[58px] rounded-xl" />
-              <div className="tum-skeleton h-[58px] rounded-xl" />
+            {categoriesError && (
+              <div className="rounded-2xl border border-red-400/25 bg-red-400/10 p-3 text-center">
+                <p className="text-sm font-bold text-red-200">Não conseguimos carregar as opções</p>
+                <p className="mt-1 text-xs leading-5 text-red-100/60">{categoriesError}</p>
+              </div>
+            )}
+
+            {!loadingCategories && !categoriesError && categories.length > 0 && (
+              <div>
+                <div className="mb-2 flex items-center justify-between px-0.5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-white/40">Escolha sua categoria</p>
+                  <span className="text-[9px] font-semibold text-white/35">Preço estimado</span>
+                </div>
+
+                <div className="space-y-2">
+                  {categories.map((item, index) => {
+                    const { compatible, price, active } = categoryUi(item);
+
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        onClick={() => {
+                          if (!compatible) return;
+                          const changingCategory = selectedCategory?.id !== item.id;
+                          setSelectedCategory(item);
+                          if (changingCategory) {
+                            setPaymentMethod(null);
+                            setPanelStep('category');
+                          }
+                        }}
+                        disabled={!compatible}
+                        className={`tum-option-enter tum-press relative w-full overflow-hidden rounded-[24px] border px-3.5 py-3 text-left transition ${
+                          active
+                            ? 'border-tum-yellow/80 bg-tum-yellow/[0.08] shadow-[0_10px_28px_rgba(250,204,21,.09)]'
+                            : 'border-white/10 bg-white/[0.04] hover:border-white/15 hover:bg-white/[0.08]'
+                        } ${!compatible ? 'cursor-not-allowed opacity-45' : ''}`}
+                        style={{ animationDelay: `${Math.min(index * 45, 180)}ms` }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-[62px] w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-black/10">
+                            {item.icon_url ? (
+                              <img
+                                src={item.icon_url}
+                                alt={`Ícone ${item.name}`}
+                                loading="lazy"
+                                draggable={false}
+                                className="h-full w-full select-none object-contain"
+                              />
+                            ) : (
+                              <div className="h-full w-full" aria-hidden="true" />
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-[17px] font-black leading-tight text-white">{item.name}</p>
+                                <p className="mt-1 text-[12px] font-medium leading-4 text-white/55">
+                                  {getCategorySubtitle(item.name)}
+                                </p>
+                                {!compatible ? (
+                                  <span className="mt-1.5 block text-[10px] font-bold text-red-300">Não aceita estas paradas</span>
+                                ) : item.surge_multiplier > 1 ? (
+                                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-orange-300/20 bg-orange-300/10 px-2 py-1 text-[9px] font-bold text-orange-100">
+                                    <Zap size={10} /> tarifa dinâmica {item.surge_multiplier.toFixed(2)}x
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              <div className="shrink-0 text-right">
+                                <p className={`text-[16px] font-black leading-none ${active ? 'text-tum-yellow' : 'text-white'}`}>
+                                  {distanceKm !== null && durationMinutes !== null ? formatBRL(price) : '...'}
+                                </p>
+                                <div className={`ml-auto mt-3 flex h-7 w-7 items-center justify-center rounded-full border transition ${
+                                  active
+                                    ? 'border-tum-yellow bg-tum-yellow text-black'
+                                    : 'border-white/15 bg-white/[0.04] text-white/55'
+                                }`}>
+                                  {active ? <Check size={14} strokeWidth={3.2} /> : <ChevronRight size={14} strokeWidth={2.7} />}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowMoreDetails((current) => !current)}
+              className="tum-press mt-2 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left transition hover:bg-white/10"
+            >
+              <span>
+                <span className="block text-[11px] font-black text-white/70">{showMoreDetails ? 'Ocultar detalhes' : 'Mais detalhes'}</span>
+                <span className="block text-[9px] font-semibold text-white/35">Cupom, distância, tempo e resumo da tarifa</span>
+              </span>
+              {showMoreDetails ? <ChevronUp size={16} className="text-tum-yellow" /> : <ChevronDown size={16} className="text-tum-yellow" />}
+            </button>
+
+            {showMoreDetails && (
+              <div className="pb-1">
+                <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Tag size={15} className="text-tum-yellow" />
+                    <p className="text-xs font-bold text-white/70">Tem cupom?</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={couponInput}
+                      onChange={(event) => setCouponInput(event.target.value)}
+                      placeholder="Digite o código"
+                      className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/10 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-tum-yellow/40"
+                    />
+                    <button
+                      type="button"
+                      onClick={validateCoupon}
+                      disabled={validating}
+                      className="tum-press min-w-[82px] rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-white/75 transition disabled:opacity-50"
+                    >
+                      {validating ? <Loader2 size={16} className="mx-auto animate-spin" /> : 'Aplicar'}
+                    </button>
+                  </div>
+                  {couponMsg && <p className={`mt-2 text-[11px] font-semibold ${couponCode ? 'text-emerald-400' : 'text-red-300'}`}>{couponMsg}</p>}
+                </div>
+
+                {priceBreakdown && (
+                  <div className="mt-2 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs font-black uppercase tracking-[0.12em] text-white/40">Resumo</p>
+                      <Route size={15} className="text-tum-yellow/70" />
+                    </div>
+                    <div className="space-y-1.5 text-[12px]">
+                      <div className="flex justify-between text-white/55"><span>Distância estimada</span><span className="font-semibold text-white/75">{distanceKm?.toFixed(1)} km</span></div>
+                      <div className="flex justify-between text-white/55"><span>Tempo estimado</span><span className="font-semibold text-white/75">{Math.ceil(durationMinutes ?? 0)} min</span></div>
+                      {stops.length > 0 && <div className="flex justify-between text-white/55"><span>{stops.length} parada{stops.length > 1 ? 's' : ''}</span><span className="font-semibold text-white/75">{selectedCategory?.stop_pricing_mode === 'fixed' ? `+ ${formatBRL(fixedStopsFee)}` : 'na rota'}</span></div>}
+                      {discount > 0 && <div className="flex justify-between text-emerald-400"><span>Desconto</span><span className="font-bold">-{formatBRL(discount)}</span></div>}
+                    </div>
+                    <div className="mt-2 flex items-end justify-between border-t border-white/10 pt-2">
+                      <div><p className="text-xs text-white/40">Total estimado</p><p className="text-[10px] text-white/30">Pode variar com o trajeto real</p></div>
+                      <span className="text-lg font-black text-tum-yellow">{formatBRL(finalPrice)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {selectedCategory && (
+              <div className="mb-4 overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.04]">
+                <div className="flex items-center gap-3 p-4">
+                  <div className="flex h-[82px] w-[112px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-black/10">
+                    {selectedCategory.icon_url ? (
+                      <img
+                        src={selectedCategory.icon_url}
+                        alt={`Ícone ${selectedCategory.name}`}
+                        draggable={false}
+                        className="h-full w-full select-none object-contain"
+                      />
+                    ) : (
+                      <div className="h-full w-full" aria-hidden="true" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-white/38">Preço estimado</p>
+                    <p className="mt-1 text-[28px] font-black leading-none text-tum-yellow">{formatBRL(finalPrice)}</p>
+                    <p className="mt-2 text-[11px] font-semibold text-white/45">{selectedCategory.name} · sujeito a variação</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 border-t border-white/10">
+                  <div className="flex items-center justify-center gap-2 border-r border-white/10 px-3 py-3">
+                    <Route size={16} className="text-tum-yellow" />
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/35">Distância</p>
+                      <p className="text-[13px] font-black text-white">{distanceKm?.toFixed(1) ?? '--'} km</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 px-3 py-3">
+                    <Clock3 size={16} className="text-tum-yellow" />
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/35">Tempo estimado</p>
+                      <p className="text-[13px] font-black text-white">{durationMinutes !== null ? `${Math.ceil(durationMinutes)} min` : '--'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-2 px-0.5">
+              <p className="text-[18px] font-black text-white">Como você prefere pagar?</p>
+              <p className="mt-1 text-[11px] font-medium text-white/45">Escolha agora. O pagamento acontece somente no final da corrida.</p>
             </div>
-            <div className="flex items-center justify-center gap-2 pt-1 text-xs text-white/[0.45]">
-              <Loader2 size={14} className="animate-spin text-tum-yellow" />
-              Preparando opções...
-            </div>
-          </div>
-        )}
 
-        {categoriesError && (
-          <div className="rounded-2xl border border-red-400/25 bg-red-400/10 p-3 text-center">
-            <p className="text-sm font-bold text-red-200">Não conseguimos carregar as opções</p>
-            <p className="mt-1 text-xs leading-5 text-red-100/60">{categoriesError}</p>
-          </div>
-        )}
-
-        {!loadingCategories && !categoriesError && categories.length > 0 && (
-          <div>
-            <div className="mb-1.5 px-0.5">
-              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-white/[0.38]">Categorias</p>
-            </div>
-
-            <div className="space-y-1.5">
-              {primaryCategories.map((item, index) => {
-                const { compatible, price, active } = categoryUi(item);
-
+            <div className="space-y-2">
+              {paymentOptions.map(({ name, icon: Icon, description }) => {
+                const active = paymentMethod === name;
                 return (
                   <button
                     type="button"
-                    key={item.id}
-                    onClick={() => compatible && setSelectedCategory(item)}
-                    disabled={!compatible}
-                    className={`tum-option-enter tum-press relative w-full overflow-hidden rounded-2xl border px-3 py-2 text-left transition ${
+                    key={name}
+                    onClick={() => setPaymentMethod(name)}
+                    className={`tum-press flex w-full items-center gap-3 rounded-[22px] border px-3.5 py-3 text-left transition ${
                       active
-                        ? 'border-tum-yellow/80 bg-tum-yellow/[0.09] shadow-[0_7px_20px_rgba(250,204,21,.07)]'
-                        : 'border-white/[0.08] bg-white/[0.035] hover:border-white/15 hover:bg-white/[0.05]'
-                    } ${!compatible ? 'cursor-not-allowed opacity-40' : ''}`}
-                    style={{ animationDelay: `${Math.min(index * 45, 90)}ms` }}
+                        ? 'border-tum-yellow/80 bg-tum-yellow/[0.08] shadow-[0_10px_28px_rgba(250,204,21,.08)]'
+                        : 'border-white/10 bg-white/[0.04] hover:border-white/15 hover:bg-white/[0.08]'
+                    }`}
                   >
-                    {active && (
-                      <div className="absolute right-2.5 top-2.5 z-10 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-tum-yellow text-black shadow-md">
-                        <Check size={10} strokeWidth={3.4} />
-                      </div>
-                    )}
-                    <div className="flex min-h-[54px] items-center gap-2.5">
-                      <div className="flex h-[52px] w-[78px] shrink-0 items-center justify-center">
-                        {item.icon_url ? (
-                          <img src={item.icon_url} alt={`Ícone ${item.name}`} loading="lazy" draggable={false} className="h-full w-full select-none object-contain" />
-                        ) : <div className="h-full w-full" aria-hidden="true" />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2 pr-5">
-                          <div className="min-w-0">
-                            <span className="block truncate text-[14px] font-black leading-tight text-white">{item.name}</span>
-                            <p className="mt-0.5 truncate text-[10px] font-medium text-white/[0.42]">{categorySubtitle(item.name)}</p>
-                          </div>
-                          <p className="whitespace-nowrap text-[14px] font-black text-tum-yellow">{distanceKm !== null && durationMinutes !== null ? formatBRL(price) : '...'}</p>
-                        </div>
-                        <div className="mt-1 flex min-h-[14px] items-center gap-1.5">
-                          {item.surge_multiplier > 1 && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-orange-300/15 bg-orange-300/10 px-1.5 py-0.5 text-[9px] font-bold text-orange-200">
-                              <Zap size={9} /> {item.surge_multiplier.toFixed(2)}x
-                            </span>
-                          )}
-                          {stops.length > 0 && (
-                            <span className={`truncate text-[9px] font-semibold ${compatible ? 'text-white/[0.35]' : 'text-red-300'}`}>
-                              {compatible
-                                ? item.stop_pricing_mode === 'fixed'
-                                  ? `${stops.length} parada(s) · ${formatBRL(item.fixed_stop_fee)} cada`
-                                  : `${stops.length} parada(s) na rota`
-                                : item.stops_enabled ? `Limite: ${item.max_stops}` : 'Não aceita paradas'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${active ? 'bg-tum-yellow text-black' : 'bg-white/[0.06] text-white/65'}`}>
+                      <Icon size={20} strokeWidth={2.3} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-[15px] font-black ${active ? 'text-tum-yellow' : 'text-white'}`}>{name}</p>
+                      <p className="mt-0.5 text-[11px] font-medium leading-4 text-white/45">{description}</p>
+                    </div>
+                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition ${
+                      active
+                        ? 'border-tum-yellow bg-tum-yellow text-black'
+                        : 'border-white/15 bg-white/[0.04] text-white/45'
+                    }`}>
+                      {active ? <Check size={14} strokeWidth={3.2} /> : <ChevronRight size={14} strokeWidth={2.7} />}
                     </div>
                   </button>
                 );
               })}
             </div>
 
-            {secondaryCategories.length > 0 && (
-              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-                {secondaryCategories.map((item, index) => {
-                  const { compatible, price, active } = categoryUi(item);
-
-                  return (
-                    <button
-                      type="button"
-                      key={item.id}
-                      onClick={() => compatible && setSelectedCategory(item)}
-                      disabled={!compatible}
-                      className={`tum-option-enter tum-press relative min-w-0 overflow-hidden rounded-xl border px-2 py-1.5 text-left transition ${
-                        active
-                          ? 'border-tum-yellow/80 bg-tum-yellow/[0.09]'
-                          : 'border-white/[0.08] bg-white/[0.03] hover:border-white/15 hover:bg-white/[0.05]'
-                      } ${!compatible ? 'cursor-not-allowed opacity-40' : ''}`}
-                      style={{ animationDelay: `${Math.min((index + 2) * 45, 180)}ms` }}
-                    >
-                      {active && (
-                        <div className="absolute right-1.5 top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-tum-yellow text-black">
-                          <Check size={9} strokeWidth={3.5} />
-                        </div>
-                      )}
-                      <div className="flex min-h-[48px] items-center gap-1.5">
-                        <div className="flex h-10 w-12 shrink-0 items-center justify-center">
-                          {item.icon_url ? (
-                            <img src={item.icon_url} alt={`Ícone ${item.name}`} loading="lazy" draggable={false} className="h-full w-full select-none object-contain" />
-                          ) : <div className="h-full w-full" aria-hidden="true" />}
-                        </div>
-                        <div className="min-w-0 flex-1 pr-2">
-                          <span className="block truncate text-[11px] font-black leading-tight text-white">{item.name}</span>
-                          <span className="mt-0.5 block truncate text-[11px] font-black text-tum-yellow">{distanceKm !== null && durationMinutes !== null ? formatBRL(price) : '...'}</span>
-                          {item.surge_multiplier > 1 && (
-                            <span className="mt-0.5 inline-flex items-center gap-0.5 text-[8px] font-bold text-orange-200"><Zap size={8} />{item.surge_multiplier.toFixed(2)}x</span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="mt-2.5">
-          <p className="mb-1.5 px-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-white/[0.38]">Forma de pagamento</p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {[{ name: 'Dinheiro', icon: Banknote }, { name: 'Pix', icon: QrCode }].map(({ name, icon: Icon }) => (
-              <button
-                type="button"
-                key={name}
-                onClick={() => setPaymentMethod(name)}
-                className={`tum-press flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-[12px] font-black transition ${paymentMethod === name ? 'border-tum-yellow/70 bg-tum-yellow/10 text-tum-yellow' : 'border-white/[0.08] bg-white/[0.035] text-white/[0.60]'}`}
-              >
-                <Icon size={15} /> {name}
-                {paymentMethod === name && <Check size={12} strokeWidth={3} />}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setShowMoreDetails((current) => !current)}
-          className="tum-press mt-2 flex w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-left transition hover:bg-white/[0.045]"
-        >
-          <span>
-            <span className="block text-[11px] font-black text-white/[0.72]">{showMoreDetails ? 'Ocultar detalhes' : 'Mais detalhes'}</span>
-            <span className="block text-[9px] font-semibold text-white/[0.30]">Cupom, distância, tempo e resumo da tarifa</span>
-          </span>
-          {showMoreDetails ? <ChevronUp size={16} className="text-tum-yellow" /> : <ChevronDown size={16} className="text-tum-yellow" />}
-        </button>
-
-        {showMoreDetails && (
-          <div className="pb-1">
-            <div className="mt-2 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-3">
-              <div className="mb-2 flex items-center gap-2">
-                <Tag size={15} className="text-tum-yellow" />
-                <p className="text-xs font-bold text-white/[0.70]">Tem cupom?</p>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  value={couponInput}
-                  onChange={(event) => setCouponInput(event.target.value)}
-                  placeholder="Digite o código"
-                  className="min-w-0 flex-1 rounded-xl border border-white/[0.08] bg-black/15 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/[0.25] focus:border-tum-yellow/40"
-                />
-                <button
-                  type="button"
-                  onClick={validateCoupon}
-                  disabled={validating}
-                  className="tum-press min-w-[82px] rounded-xl border border-white/[0.08] bg-white/[0.05] px-3 py-2 text-xs font-black text-white/[0.75] transition disabled:opacity-50"
-                >
-                  {validating ? <Loader2 size={16} className="mx-auto animate-spin" /> : 'Aplicar'}
-                </button>
-              </div>
-              {couponMsg && <p className={`mt-2 text-[11px] font-semibold ${couponCode ? 'text-emerald-400' : 'text-red-300'}`}>{couponMsg}</p>}
+            <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] px-3.5 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.1em] text-white/35">Pagamento no final</p>
+              <p className="mt-1 text-[11px] font-medium leading-4 text-white/50">
+                A forma escolhida fica vinculada a esta corrida. Nenhuma cobrança é feita antes da viagem terminar.
+              </p>
             </div>
-
-            {priceBreakdown && (
-              <div className="mt-2 rounded-2xl border border-white/[0.08] bg-black/15 p-3 text-sm">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-black uppercase tracking-[0.12em] text-white/[0.40]">Resumo</p>
-                  <Route size={15} className="text-tum-yellow/[0.70]" />
-                </div>
-                <div className="space-y-1.5 text-[12px]">
-                  <div className="flex justify-between text-white/[0.55]"><span>Distância estimada</span><span className="font-semibold text-white/[0.75]">{distanceKm?.toFixed(1)} km</span></div>
-                  <div className="flex justify-between text-white/[0.55]"><span>Tempo estimado</span><span className="font-semibold text-white/[0.75]">{Math.ceil(durationMinutes ?? 0)} min</span></div>
-                  {stops.length > 0 && <div className="flex justify-between text-white/[0.55]"><span>{stops.length} parada{stops.length > 1 ? 's' : ''}</span><span className="font-semibold text-white/[0.75]">{selectedCategory?.stop_pricing_mode === 'fixed' ? `+ ${formatBRL(fixedStopsFee)}` : 'na rota'}</span></div>}
-                  {discount > 0 && <div className="flex justify-between text-emerald-400"><span>Desconto</span><span className="font-bold">-{formatBRL(discount)}</span></div>}
-                </div>
-                <div className="mt-2 flex items-end justify-between border-t border-white/[0.08] pt-2">
-                  <div><p className="text-xs text-white/[0.40]">Total estimado</p><p className="text-[10px] text-white/[0.28]">Pode variar com o trajeto real</p></div>
-                  <span className="text-lg font-black text-tum-yellow">{formatBRL(finalPrice)}</span>
-                </div>
-              </div>
-            )}
-          </div>
+          </>
         )}
       </div>
 
-      <div className="border-t border-white/[0.08] bg-tum-dark-2/[0.98] px-4 pb-3 pt-2.5">
-        <button
-          type="button"
-          onClick={confirm}
-          disabled={
-            distanceKm === null || durationMinutes === null || directDistanceKm === null || directDurationMinutes === null || !selectedCategory || !selectedCategorySupportsStops || !cityId || loadingCategories || submitting
-          }
-          className="tum-primary-cta tum-press flex w-full items-center justify-between rounded-2xl bg-tum-yellow px-4 py-3 text-black shadow-[0_10px_28px_rgba(250,204,21,.16)] transition hover:bg-tum-yellow-dark disabled:shadow-none disabled:opacity-50"
-        >
-          <span className="text-left">
-            <span className="block text-sm font-black leading-tight">{submitting ? 'Solicitando corrida...' : `Confirmar ${selectedCategory?.name ?? 'corrida'}`}</span>
-            <span className="block text-[10px] font-semibold text-black/55">{paymentMethod}{couponCode ? ` · Cupom ${couponCode}` : ''}</span>
-          </span>
-          <span className="text-base font-black">{submitting ? <Loader2 size={18} className="animate-spin" /> : priceBreakdown ? formatBRL(finalPrice) : '...'}</span>
-        </button>
+      <div className="border-t border-white/10 bg-tum-dark-2/[0.98] px-4 pb-3 pt-2.5">
+        {panelStep === 'category' ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (!selectedCategory) return;
+              setPanelStep('payment');
+            }}
+            disabled={
+              distanceKm === null || durationMinutes === null || directDistanceKm === null || directDurationMinutes === null || !selectedCategory || !selectedCategorySupportsStops || !cityId || loadingCategories
+            }
+            className="tum-primary-cta tum-press flex w-full items-center justify-between rounded-2xl bg-tum-yellow px-4 py-3 text-black shadow-[0_10px_28px_rgba(250,204,21,.16)] transition hover:bg-tum-yellow-dark disabled:shadow-none disabled:opacity-50"
+          >
+            <span className="text-left">
+              <span className="block text-sm font-black leading-tight">
+                {selectedCategory ? 'Selecionar método de pagamento' : 'Escolha uma categoria'}
+              </span>
+              <span className="block text-[10px] font-semibold text-black/60">
+                {selectedCategory ? `${selectedCategory.name} selecionado` : 'Selecione uma categoria para continuar'}
+              </span>
+            </span>
+            <span className="flex items-center gap-2 text-base font-black">
+              {priceBreakdown ? formatBRL(finalPrice) : '...'}
+              <ChevronRight size={18} strokeWidth={3} />
+            </span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void confirm()}
+            disabled={!paymentMethod || submitting}
+            className="tum-primary-cta tum-press flex w-full items-center justify-between rounded-2xl bg-tum-yellow px-4 py-3 text-black shadow-[0_10px_28px_rgba(250,204,21,.16)] transition hover:bg-tum-yellow-dark disabled:shadow-none disabled:opacity-50"
+          >
+            <span className="text-left">
+              <span className="block text-sm font-black leading-tight">
+                {submitting
+                  ? 'Solicitando corrida...'
+                  : paymentMethod
+                    ? `Chamar ${selectedCategory?.name ?? 'carro'}`
+                    : 'Escolha um método de pagamento'}
+              </span>
+              <span className="block text-[10px] font-semibold text-black/60">
+                {paymentMethod ? `Pagamento ao final: ${paymentMethod}` : 'Nenhuma forma selecionada'}
+              </span>
+            </span>
+            <span className="flex items-center gap-2 text-base font-black">
+              {submitting ? <Loader2 size={18} className="animate-spin" /> : formatBRL(finalPrice)}
+              {!submitting && <ChevronRight size={18} strokeWidth={3} />}
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useTumMapConfig } from '../lib/mapConfig';
 import { supabase } from '../lib/supabase';
 import type { Coordinate, MapController, MapPoiSelection, MapViewProps } from './mapTypes';
+import { mapViewportPadding } from './mapViewport';
 
 const ASSET_BASE = process.env.EXPO_BASE_URL ?? '/';
 
@@ -696,8 +697,8 @@ export default function RasterMapView({
       undefined,
       outlineColor,
     );
-    draw(queuedCurrentRouteCoords, '#FACC15', Math.max(3, routeWidth - 1), 0.85, '9 7');
-    draw(queuedNextRouteCoords, '#FFFFFF', Math.max(2, routeWidth - 2), 0.72, '5 7');
+    const queuedCurrent = draw(queuedCurrentRouteCoords, '#FACC15', Math.max(3, routeWidth - 1), 0.85, '9 7');
+    const queuedNext = draw(queuedNextRouteCoords, '#FFFFFF', Math.max(2, routeWidth - 2), 0.72, '5 7');
 
     // O Painel ADM usa uma faixa branca suave com 16% do comprimento da
     // rota: transparente -> branco -> transparente. No Android o renderer é
@@ -779,22 +780,53 @@ export default function RasterMapView({
       routeAnimationFrameRef.current = window.requestAnimationFrame(animate);
     }
 
-    if (main.length >= 2) {
-      map.fitBounds(L.latLngBounds(main), {
-        paddingTopLeft: [45, 95],
-        paddingBottomRight: [45, 280],
-        maxZoom: 16,
+    const fitPoints: L.LatLngTuple[] = [...main, ...queuedCurrent, ...queuedNext];
+    const queuedDestination = finiteCoordinate(queuedCurrentDestination);
+    if (queuedDestination) fitPoints.push([queuedDestination[1], queuedDestination[0]]);
+
+    // Inclui os marcadores exatos. A geometria do Directions pode começar no
+    // centro da rua e, sem isso, o carrinho podia acabar escondido pelo painel.
+    const assignedDriver = rideDriver
+      ? finiteCoordinate([Number(rideDriver.longitude), Number(rideDriver.latitude)])
+      : null;
+    const pickup = rideDriver ? finiteCoordinate(origin) : null;
+    if (assignedDriver) fitPoints.push([assignedDriver[1], assignedDriver[0]]);
+    if (pickup) fitPoints.push([pickup[1], pickup[0]]);
+
+    let cameraFrame = 0;
+    const fitRouteViewport = () => {
+      if (fitPoints.length < 2 || mapRef.current !== map) return;
+      const padding = mapViewportPadding(map.getContainer(), Boolean(rideDriver) || queuedCurrent.length > 1 || queuedNext.length > 1);
+      map.fitBounds(L.latLngBounds(fitPoints), {
+        paddingTopLeft: [padding.left, padding.top],
+        paddingBottomRight: [padding.right, padding.bottom],
+        maxZoom: 16.7,
         animate: true,
       });
-    }
+    };
+
+    fitRouteViewport();
+    // Um segundo enquadramento no próximo frame pega a altura final do
+    // bottom-sheet depois da montagem/transição e evita pontos sob o painel.
+    cameraFrame = window.requestAnimationFrame(fitRouteViewport);
 
     return () => {
+      if (cameraFrame) window.cancelAnimationFrame(cameraFrame);
       if (routeAnimationFrameRef.current !== null) {
         window.cancelAnimationFrame(routeAnimationFrameRef.current);
         routeAnimationFrameRef.current = null;
       }
     };
-  }, [routeCoords, queuedCurrentRouteCoords, queuedNextRouteCoords, config.config_revision]);
+  }, [
+    routeCoords,
+    queuedCurrentRouteCoords,
+    queuedNextRouteCoords,
+    queuedCurrentDestination,
+    rideDriver?.latitude,
+    rideDriver?.longitude,
+    origin,
+    config.config_revision,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;

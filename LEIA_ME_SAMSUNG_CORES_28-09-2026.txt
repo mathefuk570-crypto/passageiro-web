@@ -1,0 +1,37 @@
+PATCH TUM — CORES NO SAMSUNG INTERNET
+Data: 28/09/2026
+
+PROBLEMA
+O Samsung Internet pode aplicar Force Dark/Auto Dark por cima de páginas que já
+possuem tema próprio. Isso deixa o amarelo do TUM amarronzado, o mapa acinzentado
+e algumas superfícies com contraste diferente do Chrome no mesmo aparelho.
+
+O QUE FOI CORRIGIDO
+1. O tema do TUM passa a ser aplicado já no <head>, antes da primeira pintura.
+2. A página declara "dark light" como temas suportados antes do CSS.
+3. O ThemeProvider não substitui mais essa declaração por somente um esquema.
+4. O tema selecionado dentro do TUM continua sendo a fonte de verdade.
+5. Ao voltar de outra aba/app, o tema é reaplicado (pageshow/focus/visibility).
+6. Samsung Internet recebe proteções extras contra forced-color/filter/blend.
+7. Mapbox, Leaflet e Google Maps recebem proteção para não ficarem lavados.
+8. Mantidos os ajustes de zoom de inputs e os temas claro/escuro do app.
+
+ARQUIVOS
+- app/+html.tsx
+- dom/src/hooks/useTheme.tsx
+- dom/src/index.css
+
+COMO APLICAR
+Extraia este ZIP na raiz do Passageiro/PWA e aceite substituir os arquivos.
+Depois rode:
+  npm run dev
+
+Para publicar:
+  npm run build
+
+OBSERVAÇÃO IMPORTANTE
+Se o usuário ativar no Samsung Internet a opção que FORÇA modo escuro em todo
+conteúdo web ("Force Dark mode for web content" / modo equivalente), o navegador
+pode aplicar uma transformação pós-renderização que um site não consegue anular
+100% em todas as versões. Este patch usa as APIs e proteções disponíveis para
+fazer o Samsung respeitar o tema autoral do TUM sempre que o navegador permitir.

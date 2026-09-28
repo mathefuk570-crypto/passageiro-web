@@ -4,7 +4,9 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import type { DriverLocation } from '../lib/types';
 import { useTheme } from '../hooks/useTheme';
 import { useTumMapConfig } from '../lib/mapConfig';
+import { reverseGeocode as reverseGeocodeAddress } from '../lib/mapbox';
 import type { Coordinate, MapController, MapPoiSelection, MapViewProps as Props } from './mapTypes';
+import { mapViewportPadding } from './mapViewport';
 
 type DriverFeatureProperties = {
   markerId: string;
@@ -1322,30 +1324,6 @@ function normalizeRouteCoordinates(
     .filter((coordinate): coordinate is Coordinate => coordinate !== null);
 }
 
-function activeRideViewportPadding(map: mapboxgl.Map): { top: number; right: number; bottom: number; left: number } {
-  const viewportHeight = Math.max(
-    1,
-    map.getContainer().clientHeight || window.innerHeight || 1,
-  );
-
-  // O painel da corrida fica por cima do mapa. Medimos a altura REAL dele em
-  // vez de assumir uma porcentagem fixa; assim o motorista/passageiro ficam na
-  // área visível mesmo em aparelhos com alturas e safe-areas diferentes.
-  const rideSheet = document.querySelector<HTMLElement>('.tum-ride-live-sheet');
-  const measuredSheetHeight = rideSheet?.getBoundingClientRect().height ?? 0;
-  const safetyGap = Math.max(24, Math.round(viewportHeight * 0.035));
-
-  // O painel recolhido pode chegar a 55vh. Limitamos apenas para evitar uma
-  // combinação de padding impossível caso o usuário deixe o painel expandido.
-  const maxSafeBottom = Math.max(260, Math.round(viewportHeight * 0.62));
-  const bottom = Math.min(
-    maxSafeBottom,
-    Math.max(280, Math.ceil(measuredSheetHeight + safetyGap)),
-  );
-
-  return { top: 90, right: 60, bottom, left: 60 };
-}
-
 function raiseDriverVehicleLayers(map: mapboxgl.Map): void {
   // A rota é recolocada no topo após setData/style.load. Logo depois trazemos
   // os veículos para frente para que o carrinho atribuído nunca fique coberto
@@ -1383,6 +1361,7 @@ export default function MapView({
   queuedCurrentDestination = null,
   onMapClick,
   onPoiSelect,
+  onLocationDragSelect,
   registerMap,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1392,6 +1371,7 @@ export default function MapView({
   const originMarker = useRef<mapboxgl.Marker | null>(null);
   const destinationMarker = useRef<mapboxgl.Marker | null>(null);
   const queuedDestinationMarker = useRef<mapboxgl.Marker | null>(null);
+  const dragLocationMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const fittedQueuedRouteRef = useRef<string | null>(null);
   const stopMarkers = useRef<mapboxgl.Marker[]>([]);
   const driverPositionStateRef = useRef<Map<string, DriverPositionState>>(
@@ -1418,6 +1398,7 @@ export default function MapView({
   const fittedRouteRef = useRef<string | null>(null);
   const onMapClickRef = useRef(onMapClick);
   const onPoiSelectRef = useRef(onPoiSelect);
+  const onLocationDragSelectRef = useRef(onLocationDragSelect);
 
   const { theme } = useTheme();
   const mapConfig = useTumMapConfig(cityId ?? null);
@@ -1432,6 +1413,14 @@ export default function MapView({
   useEffect(() => {
     onPoiSelectRef.current = onPoiSelect;
   }, [onPoiSelect]);
+
+  useEffect(() => {
+    onLocationDragSelectRef.current = onLocationDragSelect;
+    if (!onLocationDragSelect) {
+      dragLocationMarkerRef.current?.remove();
+      dragLocationMarkerRef.current = null;
+    }
+  }, [onLocationDragSelect]);
 
   useEffect(() => {
     latestRouteRef.current = normalizeRouteCoordinates(routeCoords);
@@ -1579,7 +1568,97 @@ export default function MapView({
       return map.queryRenderedFeatures(hitBox, { layers: poiLayerIds });
     };
 
+    const confirmDragLocationMarker = async (marker: mapboxgl.Marker) => {
+      const callback = onLocationDragSelectRef.current;
+      if (!callback) return;
+
+      const point = marker.getLngLat();
+      let address: string | null = null;
+      try {
+        address = await reverseGeocodeAddress(point.lng, point.lat);
+      } catch (error) {
+        console.warn('[TUM][MAPBOX] reverse geocode do pin:', error);
+      }
+
+      marker.remove();
+      if (dragLocationMarkerRef.current === marker) {
+        dragLocationMarkerRef.current = null;
+      }
+
+      callback({
+        name: address || 'Local selecionado',
+        address,
+        category: null,
+        openingHours: null,
+        coordinates: [point.lng, point.lat],
+      });
+    };
+
+    const ensureDragLocationMarker = (lng: number, lat: number) => {
+      const callback = onLocationDragSelectRef.current;
+      if (!callback) return false;
+
+      if (dragLocationMarkerRef.current) {
+        dragLocationMarkerRef.current.setLngLat([lng, lat]);
+        return true;
+      }
+
+      const pinSize = Math.round(
+        Math.max(20, Math.min(28, Number(currentMapConfigRef.current.passenger_visual_config.pinSize || 24))),
+      );
+      const pinHeight = Math.round(pinSize * (595 / 419));
+      const element = document.createElement('button');
+      element.type = 'button';
+      element.setAttribute('aria-label', 'Confirmar local selecionado');
+      element.style.width = `${pinSize}px`;
+      element.style.height = `${pinHeight}px`;
+      element.style.padding = '0';
+      element.style.margin = '0';
+      element.style.border = '0';
+      element.style.background = 'transparent';
+      element.style.cursor = 'grab';
+      element.style.touchAction = 'none';
+      element.style.filter = 'drop-shadow(0 4px 7px rgba(0,0,0,.42))';
+
+      const image = document.createElement('img');
+      image.src = publicAsset('map-markers/tum-location-pin.png');
+      image.alt = '';
+      image.draggable = false;
+      image.style.display = 'block';
+      image.style.width = '100%';
+      image.style.height = '100%';
+      image.style.objectFit = 'contain';
+      image.style.pointerEvents = 'none';
+      element.appendChild(image);
+
+      const marker = new mapboxgl.Marker({
+        element,
+        anchor: 'bottom',
+        draggable: true,
+      })
+        .setLngLat([lng, lat])
+        .addTo(map);
+
+      marker.on('dragstart', () => { element.style.cursor = 'grabbing'; });
+      marker.on('dragend', () => {
+        element.style.cursor = 'grab';
+        void confirmDragLocationMarker(marker);
+      });
+      element.addEventListener('click', (clickEvent) => {
+        clickEvent.preventDefault();
+        clickEvent.stopPropagation();
+        void confirmDragLocationMarker(marker);
+      });
+
+      dragLocationMarkerRef.current = marker;
+      return true;
+    };
+
     const handleMapClick = (event: mapboxgl.MapMouseEvent) => {
+      if (ensureDragLocationMarker(event.lngLat.lng, event.lngLat.lat)) {
+        return;
+      }
+
       if (onPoiSelectRef.current) {
         // Área de toque maior que o desenho do pin. Assim o passageiro pode tocar
         // tanto no ícone quanto no nome do estabelecimento sem precisar acertar
@@ -1665,6 +1744,8 @@ export default function MapView({
 
       queuedDestinationMarker.current?.remove();
       queuedDestinationMarker.current = null;
+      dragLocationMarkerRef.current?.remove();
+      dragLocationMarkerRef.current = null;
       fittedQueuedRouteRef.current = null;
 
       stopMarkers.current.forEach((marker) => marker.remove());
@@ -2365,7 +2446,7 @@ export default function MapView({
       const bounds = new mapboxgl.LngLatBounds(first, first);
       allCoordinates.slice(1).forEach((coordinate) => bounds.extend(coordinate));
       map.fitBounds(bounds, {
-        padding: { top: 90, right: 60, bottom: 300, left: 60 },
+        padding: mapViewportPadding(map.getContainer(), true),
         duration: 550,
         maxZoom: 16,
       });
@@ -2499,18 +2580,7 @@ export default function MapView({
 
       raiseDriverVehicleLayers(map);
 
-      const viewportHeight = Math.max(
-        1,
-        map.getContainer().clientHeight || window.innerHeight || 1,
-      );
-      const padding = rideDriver
-        ? activeRideViewportPadding(map)
-        : {
-            top: 90,
-            right: 60,
-            bottom: Math.max(260, Math.round(viewportHeight * 0.38)),
-            left: 60,
-          };
+      const padding = mapViewportPadding(map.getContainer(), Boolean(rideDriver));
 
       map.fitBounds(bounds, {
         padding,

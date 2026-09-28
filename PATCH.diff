@@ -1,0 +1,133 @@
+--- /mnt/data/PATCH_TUM_WEB_ATALHO_CHROME_LIBERACAO_2026-09-28/dom/src/App.tsx	2026-09-28 07:22:53.882957183 +0000
++++ /mnt/data/tum_web/dom/src/App.tsx	2026-09-28 07:29:25.898352490 +0000
+@@ -11,7 +11,7 @@
+ import { loadSafetyRecordingState, saveSafetyRecordingState } from './lib/safetyRecording';
+ import AppErrorBoundary from './components/AppErrorBoundary';
+ import PwaInstallGuide from './components/PwaInstallGuide';
+-import { detectPwaEnvironment, installMobileViewportGuards, isPwaAccessGranted, registerPwaServiceWorker } from './lib/pwaInstall';
++import { detectPwaEnvironment, getDeferredInstallPrompt, installMobileViewportGuards, isPwaAccessGranted, registerPwaServiceWorker } from './lib/pwaInstall';
+ 
+ type AppProps = {
+   runtimePlatform?: string;
+@@ -150,29 +150,84 @@
+       return undefined;
+     }
+ 
+-    void registerPwaServiceWorker();
++    let cancelled = false;
++    let probeTimer: number | undefined;
+     const removeViewportGuards = installMobileViewportGuards();
+ 
+-    const refreshPwaAccess = () => {
++    const allowApp = () => {
++      if (!cancelled) setPwaAccess('allowed');
++    };
++
++    const evaluateInstallGate = () => {
++      if (cancelled) return;
++
+       const environment = detectPwaEnvironment();
+-      const installedOrHomescreen = isPwaAccessGranted();
+-      setPwaAccess(environment.mobile && !installedOrHomescreen ? 'install-required' : 'allowed');
++
++      // Desktop, PWA já instalado ou abertura por atalho: nunca bloquear.
++      if (!environment.mobile || isPwaAccessGranted()) {
++        setPwaAccess('allowed');
++        return;
++      }
++
++      // Nova regra: só exigimos instalação quando o próprio navegador
++      // disponibilizou o prompt nativo `beforeinstallprompt`.
++      setPwaAccess(getDeferredInstallPrompt() ? 'install-required' : 'allowed');
++    };
++
++    const initializePwaGate = async () => {
++      await registerPwaServiceWorker();
++      if (cancelled) return;
++
++      const environment = detectPwaEnvironment();
++      if (!environment.mobile || isPwaAccessGranted()) {
++        setPwaAccess('allowed');
++        return;
++      }
++
++      if (getDeferredInstallPrompt()) {
++        setPwaAccess('install-required');
++        return;
++      }
++
++      // O Chromium pode disparar `beforeinstallprompt` alguns instantes depois
++      // do carregamento. Fazemos uma verificação curta; se o navegador não
++      // oferecer instalação, o TUM é liberado e o usuário pode usar o atalho.
++      probeTimer = window.setTimeout(() => {
++        evaluateInstallGate();
++      }, 1400);
++    };
++
++    const onInstallReady = () => {
++      if (cancelled) return;
++      if (probeTimer !== undefined) {
++        window.clearTimeout(probeTimer);
++        probeTimer = undefined;
++      }
++
++      if (!isPwaAccessGranted()) setPwaAccess('install-required');
++    };
++
++    const onInstallCompleted = () => {
++      if (probeTimer !== undefined) {
++        window.clearTimeout(probeTimer);
++        probeTimer = undefined;
++      }
++      allowApp();
+     };
+ 
+-    refreshPwaAccess();
++    void initializePwaGate();
+ 
+-    const displayMode = window.matchMedia?.('(display-mode: standalone)');
+-    window.addEventListener('pageshow', refreshPwaAccess);
+-    window.addEventListener('focus', refreshPwaAccess);
+-    document.addEventListener('visibilitychange', refreshPwaAccess);
+-    displayMode?.addEventListener?.('change', refreshPwaAccess);
++    window.addEventListener('tum:pwa-install-ready', onInstallReady);
++    window.addEventListener('tum:pwa-installed', onInstallCompleted);
++    window.addEventListener('tum:pwa-install-accepted', onInstallCompleted);
+ 
+     return () => {
++      cancelled = true;
++      if (probeTimer !== undefined) window.clearTimeout(probeTimer);
+       removeViewportGuards();
+-      window.removeEventListener('pageshow', refreshPwaAccess);
+-      window.removeEventListener('focus', refreshPwaAccess);
+-      document.removeEventListener('visibilitychange', refreshPwaAccess);
+-      displayMode?.removeEventListener?.('change', refreshPwaAccess);
++      window.removeEventListener('tum:pwa-install-ready', onInstallReady);
++      window.removeEventListener('tum:pwa-installed', onInstallCompleted);
++      window.removeEventListener('tum:pwa-install-accepted', onInstallCompleted);
+     };
+   }, [runtimePlatform]);
+ 
+--- /mnt/data/PATCH_TUM_WEB_ATALHO_CHROME_LIBERACAO_2026-09-28/dom/src/lib/pwaInstall.ts	2026-09-28 07:22:53.885991718 +0000
++++ /mnt/data/tum_web/dom/src/lib/pwaInstall.ts	2026-09-28 07:29:25.898685667 +0000
+@@ -35,9 +35,19 @@
+ export async function promptPwaInstall(): Promise<'accepted' | 'dismissed' | 'unavailable'> {
+   const prompt = deferredInstallPrompt;
+   if (!prompt) return 'unavailable';
++
+   await prompt.prompt();
+   const choice = await prompt.userChoice;
+-  if (choice.outcome === 'accepted') deferredInstallPrompt = null;
++
++  // O evento `beforeinstallprompt` só pode ser consumido uma vez.
++  deferredInstallPrompt = null;
++
++  if (choice.outcome === 'accepted' && typeof window !== 'undefined') {
++    // Libera a aba atual imediatamente depois que o usuário aceitou a
++    // instalação. O `appinstalled` continua sendo ouvido como confirmação.
++    window.dispatchEvent(new CustomEvent('tum:pwa-install-accepted'));
++  }
++
+   return choice.outcome;
+ }
+ 

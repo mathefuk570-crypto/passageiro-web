@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: only dark;
+  color-scheme: dark light;
   --tum-bg: 18 18 18;
   --tum-surface: 30 30 30;
   --tum-surface-alt: 42 42 42;
@@ -12,8 +12,12 @@
   --tum-yellow-dark: 234 179 8;
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
 html.light {
-  color-scheme: only light;
+  color-scheme: light;
   --tum-bg: 244 244 245;
   --tum-surface: 255 255 255;
   --tum-surface-alt: 235 237 240;
@@ -39,6 +43,53 @@ html {
 body {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   SAMSUNG INTERNET / AUTO DARK GUARD
+
+   O Samsung Internet pode aplicar uma transformação de cores depois que o
+   CSS já foi calculado. Como o TUM possui tema claro/escuro próprio, indicamos
+   explicitamente que ambos são suportados e travamos as áreas críticas para
+   evitar uma segunda interpretação do navegador.
+   -------------------------------------------------------------------------- */
+html[data-tum-browser='samsung'],
+html[data-tum-browser='samsung'] body,
+html[data-tum-browser='samsung'] #root {
+  forced-color-adjust: none;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* O gradiente de uma única cor funciona como camada de fundo autoral e reduz
+   a chance de heurísticas de Auto/Force Dark substituírem o canvas da página. */
+body,
+#root {
+  background-image: linear-gradient(rgb(var(--tum-bg)), rgb(var(--tum-bg)));
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Mapas são canvas/imagens e eram a parte mais visivelmente lavada no Samsung.
+   Não permita filtros/blend herdados ou inseridos por heurísticas do navegador. */
+html[data-tum-browser='samsung'] .mapboxgl-map,
+html[data-tum-browser='samsung'] .mapboxgl-canvas,
+html[data-tum-browser='samsung'] .leaflet-container,
+html[data-tum-browser='samsung'] .leaflet-tile,
+html[data-tum-browser='samsung'] .gm-style,
+html[data-tum-browser='samsung'] .gm-style img,
+html[data-tum-browser='samsung'] .gm-style canvas {
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  forced-color-adjust: none !important;
+}
+
+/* Inputs/botões usam as cores do app, não a paleta automática do navegador. */
+html[data-tum-browser='samsung'] input,
+html[data-tum-browser='samsung'] textarea,
+html[data-tum-browser='samsung'] select,
+html[data-tum-browser='samsung'] button {
+  forced-color-adjust: none;
 }
 
 /* iPhone faz zoom automático ao focar campos menores que 16 px. Mantemos o
@@ -488,8 +539,12 @@ html.light .tum-auth-page {
    Mantém o tema escuro intacto e corrige todas as telas que ainda usam
    utilitários text-white/bg-black herdados do dark mode.
    -------------------------------------------------------------------------- */
+html.dark {
+  color-scheme: dark;
+}
+
 html.light {
-  color-scheme: only light;
+  color-scheme: light;
   --tum-bg: 247 247 248;
   --tum-surface: 255 255 255;
   --tum-surface-alt: 246 247 248;

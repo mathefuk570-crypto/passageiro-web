@@ -2471,6 +2471,10 @@ export default function HomeScreen({
     mapRef.current = map;
   }, []);
 
+  const plannedRouteReady = Boolean(
+    destination?.coordinates || activeRide?.id,
+  );
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-tum-dark dark:bg-tum-dark">
       {locationReady ? (
@@ -2518,27 +2522,27 @@ export default function HomeScreen({
 
       <div className="absolute top-0 left-0 right-0 z-20 p-3 pointer-events-none">
         <div className="flex items-center justify-between pointer-events-auto">
-          <div className="tum-soft-enter flex items-center gap-2.5 rounded-2xl border border-white/10 bg-tum-dark-2/[0.92] py-1.5 pl-2 pr-4 shadow-xl backdrop-blur-xl">
+          <div
+            className={`tum-profile-pill tum-soft-enter flex items-center border border-white/10 bg-tum-dark-2/[0.92] shadow-xl backdrop-blur-xl transition-all duration-500 ease-out ${
+              plannedRouteReady
+                ? 'gap-2 rounded-xl py-1 pl-1.5 pr-3'
+                : 'gap-2.5 rounded-2xl py-1.5 pl-2 pr-4'
+            }`}
+          >
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
                 alt={profile.full_name}
-                className="h-9 w-9 rounded-full border border-white/10 object-cover"
+                className={`${plannedRouteReady ? 'h-8 w-8' : 'h-9 w-9'} rounded-full border border-white/10 object-cover transition-all duration-500`}
               />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-tum-yellow font-black text-black">
+              <div className={`${plannedRouteReady ? 'h-8 w-8 text-sm' : 'h-9 w-9'} flex items-center justify-center rounded-full bg-tum-yellow font-black text-black transition-all duration-500`}>
                 {profile.full_name.charAt(0)}
               </div>
             )}
-            <div className="leading-tight">
-              <div className="mb-0.5 flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.7)]" />
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/[0.45]">TUM disponível</p>
-              </div>
-              <p className="text-sm font-extrabold text-white">
-                Olá, <span className="text-tum-yellow">{profile.full_name.split(' ')[0]}</span>
-              </p>
-            </div>
+            <p className={`${plannedRouteReady ? 'text-xs' : 'text-sm'} whitespace-nowrap font-extrabold leading-tight text-white transition-all duration-500`}>
+              Olá, <span className="text-tum-yellow">{profile.full_name.split(' ')[0]}</span>
+            </p>
           </div>
         </div>
       </div>
@@ -2690,6 +2694,10 @@ export default function HomeScreen({
                   invalidateIdleRoute();
                   if (coordinates) {
                     setDestination({ place_name: name, coordinates });
+                    // Ao concluir o destino, recolhe o painel para a rota
+                    // aparecer inteira no mapa. O passageiro pode expandir de
+                    // novo quando quiser adicionar detalhes/paradas.
+                    setTripSheetExpanded(false);
                   } else {
                     setDestination(null);
                   }
@@ -2710,6 +2718,7 @@ export default function HomeScreen({
                   onSelect={(savedAddress) => {
                     invalidateIdleRoute();
                     setDestination(savedAddress);
+                    setTripSheetExpanded(false);
                   }}
                 />
               </div>

@@ -21,6 +21,48 @@ function initialTheme(): Theme {
   return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
 
+function ensureMeta(name: string, content: string) {
+  let meta = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.name = name;
+    document.head.prepend(meta);
+  }
+  meta.content = content;
+  return meta;
+}
+
+function applyDocumentTheme(theme: Theme) {
+  const root = document.documentElement;
+  const ua = navigator.userAgent || '';
+
+  root.classList.remove('dark', 'light');
+  root.classList.add(theme);
+  root.dataset.tumTheme = theme;
+  root.dataset.tumBrowser = /SamsungBrowser/i.test(ua) ? 'samsung' : 'other';
+
+  /*
+    A meta tag fica SEMPRE com os dois temas suportados. Isso é proposital:
+    Samsung Internet usa a declaração para preferir o tema fornecido pelo site
+    em vez de aplicar o Force Dark sobre as cores do TUM.
+
+    O esquema efetivamente ativo continua sendo controlado pelo app no elemento
+    raiz, então o botão de tema do TUM segue mandando na interface.
+  */
+  ensureMeta('color-scheme', 'dark light');
+  ensureMeta('supported-color-schemes', 'dark light');
+  ensureMeta('theme-color', theme === 'dark' ? '#050505' : '#F7F7F8');
+
+  root.style.colorScheme = theme;
+  root.style.backgroundColor = theme === 'dark' ? '#050505' : '#F7F7F8';
+
+  if (document.body) {
+    document.body.dataset.tumTheme = theme;
+    document.body.style.colorScheme = theme;
+    document.body.style.backgroundColor = theme === 'dark' ? '#050505' : '#F7F7F8';
+  }
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const nativeActions = useNativeActions();
   const [theme, setTheme] = useState<Theme>(initialTheme);
@@ -28,22 +70,29 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try { window.localStorage.setItem('tum-theme', theme); } catch {}
 
-    const root = document.documentElement;
-    root.classList.remove('dark', 'light');
-    root.classList.add(theme);
-    root.dataset.tumTheme = theme;
-    root.style.colorScheme = `only ${theme}`;
+    const reapply = () => applyDocumentTheme(theme);
+    reapply();
 
-    // Evita que Chrome/Samsung/Safari "reinterpretem" as cores quando o
-    // aparelho está forçando modo claro/escuro diferente do tema escolhido no TUM.
-    const colorSchemeMeta = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
-    if (colorSchemeMeta) colorSchemeMeta.content = theme;
+    /*
+      Alguns navegadores Android reavaliam o modo escuro ao voltar de outra
+      aba/app. Reaplicamos a escolha do TUM nesses eventos para não voltar com
+      cores alteradas depois de minimizar o navegador.
+    */
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') reapply();
+    };
 
-    const themeMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    if (themeMeta) themeMeta.content = theme === 'dark' ? '#050505' : '#F4F4F5';
+    window.addEventListener('pageshow', reapply);
+    window.addEventListener('focus', reapply);
+    document.addEventListener('visibilitychange', onVisibility);
 
-    document.body.style.backgroundColor = theme === 'dark' ? '#050505' : '#F4F4F5';
     void nativeActions?.setNativeTheme?.(theme);
+
+    return () => {
+      window.removeEventListener('pageshow', reapply);
+      window.removeEventListener('focus', reapply);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [nativeActions, theme]);
 
   return (

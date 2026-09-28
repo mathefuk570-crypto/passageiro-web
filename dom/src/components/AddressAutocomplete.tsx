@@ -3,14 +3,86 @@ import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin, X, type LucideIcon } from 'lucide-react';
 import {
+  getCityFromCoordinates,
   newSearchSessionToken,
   retrieveAddressSuggestion,
   searchAddressSuggestions,
+  type CityLocation,
   type MapboxSearchSuggestion,
 } from '../lib/mapbox';
 import { useTumMapConfig } from '../lib/mapConfig';
 
 type ResultsDirection = 'up' | 'down';
+
+const localityLookupCache = new Map<string, Promise<CityLocation | null>>();
+
+function normalizedLocationText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function suggestionText(suggestion: MapboxSearchSuggestion): string {
+  return normalizedLocationText([
+    suggestion.name_preferred,
+    suggestion.name,
+    suggestion.full_address,
+    suggestion.place_formatted,
+    suggestion.address,
+  ].filter(Boolean).join(' '));
+}
+
+function suggestionLocalityScore(
+  suggestion: MapboxSearchSuggestion,
+  locality: CityLocation | null,
+): number {
+  if (!locality) return 0;
+  const haystack = suggestionText(suggestion);
+  const city = normalizedLocationText(locality.city);
+  const state = normalizedLocationText(locality.state);
+  let score = 0;
+  if (city && haystack.includes(city)) score += 4;
+  if (state && haystack.includes(state)) score += 1;
+  return score;
+}
+
+function rankSuggestions(
+  suggestions: MapboxSearchSuggestion[],
+  locality: CityLocation | null,
+): MapboxSearchSuggestion[] {
+  return suggestions
+    .map((suggestion, index) => ({
+      suggestion,
+      index,
+      localityScore: suggestionLocalityScore(suggestion, locality),
+      distance: Number.isFinite(Number(suggestion.distance))
+        ? Number(suggestion.distance)
+        : Number.POSITIVE_INFINITY,
+    }))
+    .sort((a, b) =>
+      b.localityScore - a.localityScore ||
+      a.distance - b.distance ||
+      a.index - b.index,
+    )
+    .map((entry) => entry.suggestion);
+}
+
+function localityFromProximity(
+  proximity: [number, number],
+): Promise<CityLocation | null> {
+  // Aproximadamente 1 km por chave nessa latitude: suficiente para compartilhar
+  // a mesma cidade entre origem, destino e paradas sem repetir reverse geocode.
+  const key = `${proximity[0].toFixed(2)},${proximity[1].toFixed(2)}`;
+  let pending = localityLookupCache.get(key);
+  if (!pending) {
+    pending = getCityFromCoordinates(proximity[0], proximity[1]).catch(() => null);
+    localityLookupCache.set(key, pending);
+  }
+  return pending;
+}
 
 function resultTitle(suggestion: MapboxSearchSuggestion): string {
   return suggestion.name_preferred || suggestion.name;
@@ -50,6 +122,7 @@ export default function AddressAutocomplete({
   const [results, setResults] = useState<MapboxSearchSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [localityBias, setLocalityBias] = useState<CityLocation | null>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -61,6 +134,25 @@ export default function AddressAutocomplete({
   useEffect(() => {
     setQuery(value);
   }, [value]);
+
+  useEffect(() => {
+    let active = true;
+    if (!proximity || !Number.isFinite(proximity[0]) || !Number.isFinite(proximity[1])) {
+      setLocalityBias(null);
+      return () => { active = false; };
+    }
+
+    void localityFromProximity(proximity).then((locality) => {
+      if (active) setLocalityBias(locality);
+    });
+
+    return () => { active = false; };
+  }, [proximity?.[0], proximity?.[1]]);
+
+  useEffect(() => {
+    if (!localityBias) return;
+    setResults((current) => rankSuggestions(current, localityBias));
+  }, [localityBias?.city, localityBias?.state]);
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -159,8 +251,9 @@ export default function AddressAutocomplete({
         );
 
         if (requestId !== requestIdRef.current) return;
-        setResults(suggestions);
-        setOpen(suggestions.length > 0);
+        const rankedSuggestions = rankSuggestions(suggestions, localityBias);
+        setResults(rankedSuggestions);
+        setOpen(rankedSuggestions.length > 0);
       } catch (error) {
         console.warn('Falha ao buscar endereço/ponto de referência:', error);
         if (requestId === requestIdRef.current) {
@@ -188,6 +281,9 @@ export default function AddressAutocomplete({
       setOpen(false);
       onChange(feature.place_name, feature.center);
       resetSearchSession();
+      window.requestAnimationFrame(() => {
+        boxRef.current?.querySelector('input')?.blur();
+      });
     } catch (error) {
       console.warn('Falha ao selecionar endereço/ponto de referência:', error);
       setOpen(true);
