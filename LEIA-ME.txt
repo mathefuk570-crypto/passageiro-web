@@ -1,23 +1,13 @@
-TUM Passageiro - AAB Play Store com nova chave de upload
+PATCH CLOUDFLARE - TUM PASSAGEIRO WEB
 
-Este patch foi preparado em cima do build.gradle da versao WebView V2 que esta sendo usada no Passageiroo.
+1. Copie o arquivo wrangler.jsonc para a RAIZ do repositório passageiro-web,
+   no mesmo nível do package.json.
+2. Faça commit e push.
+3. No Cloudflare, mantenha:
+   Build command: npm run build
+   Deploy command: npx wrangler deploy --assets ./dist
+4. Rode o deploy novamente.
 
-Configuracao:
-- pacote: com.tornado.tum.passageiro
-- versionCode: 4
-- versionName: 1.0.2
-- release usa signingConfigs.release
-- credenciais recuperadas do EAS production
-- a JKS esperada continua na raiz do projeto com o nome:
-  @migusta118700_ tum-passageiro.jks
-
-Extraia este ZIP por cima de:
-C:\TUM\Passageiroo
-
-Depois rode:
-cd /d C:\TUM\Passageiroo && npm run typecheck && npx expo export --platform android --clear && cd android && gradlew bundleRelease
-
-AAB final esperado:
-C:\TUM\Passageiroo\android\app\build\outputs\bundle\release\app-release.aab
-
-NAO execute prebuild --clean depois de aplicar este patch, pois ele pode regenerar android/app/build.gradle.
+Este patch corrige:
+- compatibility_date ausente
+- nome do Worker diferente do esperado pelo CI
