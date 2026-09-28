@@ -1,0 +1,7 @@
+Correção do único erro de typecheck:
+dom/src/main.tsx renderiza <App /> sem props no bootstrap web/DOM.
+
+A prop nativeEssentialPermissionsStatus agora é opcional e usa null por padrão.
+No app Android, PassengerDomApp continua passando o snapshot nativo normalmente.
+
+Não altera lógica de permissões, áudio, corrida ou compartilhamento.

@@ -1,0 +1,13 @@
+TUM PASSAGEIRO — FIX FINAL PERMISSÕES + ÁUDIO DE CHEGADA
+
+1) Permissões
+- Android PackageManager/PermissionsAndroid passa a ser a fonte de verdade para Localização e Notificações.
+- Se já estão concedidas, a tela fecha imediatamente.
+- Se faltam e ainda podem ser solicitadas, os popups voltam a abrir automaticamente.
+- A tela e o desenho não foram alterados.
+
+2) Motorista chegou
+- O canal V3 instalado no aparelho estava apontando para o som padrão do Android, não para motorista_chegou_com_voz.
+- O canal de chegada passa para V4.
+- Um config plugin copia explicitamente os MP3 para android/app/src/main/res/raw durante o prebuild.
+- ESTE PATCH EXIGE: npx expo prebuild --clean antes do build.

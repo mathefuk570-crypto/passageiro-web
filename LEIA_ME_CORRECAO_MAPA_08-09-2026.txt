@@ -1,0 +1,23 @@
+TUM Passageiro — correção do patch de mapa
+
+IMPORTANTE
+O patch anterior substituiu por engano o MapView roteador (Mapbox/Google/Painel ADM) por uma implementação antiga direta. Este patch restaura o MapView correto e mantém todos os sistemas já existentes.
+
+Arquivos alterados:
+- dom/src/components/HomeScreen.tsx
+- dom/src/components/MapView.tsx (restauração do roteador correto)
+- dom/src/components/MapboxMapView.tsx
+
+Correções:
+- mantém carrinhos online visíveis em todas as fases;
+- polling 3 s com retenção de 30 s para não piscar por retorno vazio;
+- não inicia dois polls de frota ao mesmo tempo;
+- preserva última rota enquanto a próxima é calculada;
+- sequência impede resposta antiga de apagar/substituir a segunda rota;
+- trocar origem/destino/paradas não zera a linha antes da nova rota chegar;
+- filtro de jitter mais forte para motorista parado;
+- heading fica congelado quando speed indica veículo parado;
+- mantém Painel ADM, Mapbox/Google fallback, fila, Procurar outro motorista, áudio, permissões, compartilhamento e demais sistemas.
+
+Não precisa prebuild --clean.
+Depois de aplicar: npm run typecheck

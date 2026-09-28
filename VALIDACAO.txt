@@ -1,0 +1,14 @@
+VALIDAÇÃO FEITA NESTA RODADA — 06/09/2026
+
+- Parser TypeScript: todos os arquivos TS/TSX dos três projetos (exceto .d.ts) passaram.
+- Imports relativos: verificados em 207 arquivos, sem arquivo relativo ausente.
+- Referências de styles nos principais arquivos React Native: verificadas.
+- app.json do Motorista e Passageiro: JSON válido.
+- AndroidManifest.xml dos módulos alterados: XML válido.
+- Scripts CJS da Play Store: sintaxe Node válida.
+- Sons Android do Passageiro referenciados pelos canais: todos os arquivos existentes; o MP3 personalizado "motorista-finalizando-corrida.mp3" continua opcional e não foi inventado.
+- Backend: migrations aplicadas para compartilhamento em mapa, vínculo explícito de vídeo, listagem privada de denúncia e timestamp confiável do chat.
+- Edge Function ride-share: versão 3 ACTIVE.
+
+NÃO FOI POSSÍVEL RODAR O TYPECHECK COMPLETO NESTE AMBIENTE porque node_modules não está presente e npm ci excedeu o tempo disponível.
+Por isso o passo final continua sendo npm run typecheck no seu C:\TUMM antes do APK.

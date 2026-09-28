@@ -1,27 +1,31 @@
 {
+  "id": "/",
   "name": "TUM Passageiro",
   "short_name": "TUM",
-  "description": "Tornado Urban Mobility — aplicativo do passageiro",
+  "description": "TUM — mobilidade para passageiros, corridas e recursos de segurança.",
+  "lang": "pt-BR",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
   "background_color": "#050505",
   "theme_color": "#FACC15",
+  "categories": ["navigation", "travel", "utilities"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
-  ],
-  "id": "/",
-  "lang": "pt-BR",
-  "orientation": "portrait"
+  ]
 }

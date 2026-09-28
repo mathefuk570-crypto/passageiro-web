@@ -1,0 +1,23 @@
+TUM PASSAGEIRO — PATCH ÁUDIO/NOTIFICAÇÕES EM BACKGROUND + CHAT V2
+
+Arquivos alterados:
+- app/index.tsx
+- dom/src/components/HomeScreen.tsx
+- dom/src/components/ChatPanel.tsx
+- app.json
+- public/sounds/mensagem_recebida.mp3
+
+O que muda:
+1. No app Android nativo, os avisos de status da corrida ficam sob responsabilidade da notificação do sistema, inclusive em primeiro plano.
+2. O player HTML/WebView continua sendo usado apenas no web, evitando que a fala pause quando o app Android vai para segundo plano.
+3. Os canais de corrida v2 já existentes continuam usando os áudios reais do TUM (incluindo motorista_chegou_com_voz.mp3).
+4. Chat migra para tum-chat-messages-v2 com mensagem_recebida.mp3.
+5. O backend send-chat-message-notification foi atualizado para a versão 3 e já envia Android para tum-chat-messages-v2.
+
+IMPORTANTE:
+Como app.json ganhou um novo som do expo-notifications, rode npx expo prebuild --clean antes do build.
+Depois rode npm run typecheck e o build release.
+
+MuMu/emuladores: o projeto ignora registro Expo Push quando expo-device informa que não é aparelho físico. Portanto push remoto com o app fechado deve ser validado também em um celular real.
+
+Limite Android: Configurações > Forçar parada bloqueia serviços/notificações até o usuário abrir o app de novo.

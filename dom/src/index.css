@@ -1,0 +1,767 @@
+@import 'mapbox-gl/dist/mapbox-gl.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: only dark;
+  --tum-bg: 18 18 18;
+  --tum-surface: 30 30 30;
+  --tum-surface-alt: 42 42 42;
+  --tum-yellow: 250 204 21;
+  --tum-yellow-dark: 234 179 8;
+}
+
+html.light {
+  color-scheme: only light;
+  --tum-bg: 244 244 245;
+  --tum-surface: 255 255 255;
+  --tum-surface-alt: 235 237 240;
+  --tum-yellow: 166 124 0;
+  --tum-yellow-dark: 116 85 0;
+}
+
+html, body, #root {
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iPhone faz zoom automático ao focar campos menores que 16 px. Mantemos o
+   tamanho de edição em 16 px no mobile para o layout não "pular" ou ampliar. */
+@media (max-width: 900px), (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+#root {
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: rgb(var(--tum-bg));
+  color: #fff;
+}
+
+html.light body {
+  color: #111214;
+}
+
+/* O projeto antigo usava text-white em quase todas as telas. No tema claro,
+   estes overrides convertem a interface inteira sem deixar o amarelo ilegível. */
+html.light .text-white { color: #111214 !important; }
+html.light .text-white\/90 { color: rgba(17,18,20,.90) !important; }
+html.light .text-white\/70 { color: rgba(17,18,20,.70) !important; }
+html.light .text-white\/65 { color: rgba(17,18,20,.65) !important; }
+html.light .text-white\/60 { color: rgba(17,18,20,.60) !important; }
+html.light .text-white\/55 { color: rgba(17,18,20,.55) !important; }
+html.light .text-white\/50 { color: rgba(17,18,20,.50) !important; }
+html.light .text-white\/45 { color: rgba(17,18,20,.45) !important; }
+html.light .text-white\/40 { color: rgba(17,18,20,.40) !important; }
+html.light .text-white\/35 { color: rgba(17,18,20,.35) !important; }
+html.light .text-white\/25 { color: rgba(17,18,20,.28) !important; }
+html.light .border-white\/20 { border-color: rgba(17,18,20,.20) !important; }
+html.light .border-white\/15 { border-color: rgba(17,18,20,.15) !important; }
+html.light .border-white\/10 { border-color: rgba(17,18,20,.10) !important; }
+html.light .border-white\/5 { border-color: rgba(17,18,20,.06) !important; }
+html.light .bg-white\/20 { background-color: rgba(17,18,20,.12) !important; }
+html.light .bg-white\/15 { background-color: rgba(17,18,20,.09) !important; }
+html.light .bg-white\/10 { background-color: rgba(17,18,20,.07) !important; }
+html.light .bg-white\/5 { background-color: rgba(17,18,20,.04) !important; }
+
+.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right {
+  display: none !important;
+}
+
+.pulse-marker {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #3b82f6;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  animation: pulseDot 1.8s infinite;
+}
+
+@keyframes pulseDot {
+  0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.7); }
+  70% { box-shadow: 0 0 0 16px rgba(59,130,246,0); }
+  100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+}
+
+.driver-pin {
+  width: 36px;
+  height: 36px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  border: 2px solid rgba(255,255,255,0.9);
+}
+
+.driver-pin > * { transform: rotate(45deg); }
+
+.dest-pin {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: rgb(var(--tum-yellow));
+  border: 3px solid #111;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Marcadores do mapa do passageiro.
+   IMPORTANTE: não altere position/transform do elemento raiz do Marker,
+   porque o Mapbox usa essas propriedades para posicioná-lo. */
+.tum-origin-marker {
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.tum-origin-marker-ring,
+.tum-origin-marker-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+}
+
+.tum-origin-marker-ring {
+  width: 30px;
+  height: 30px;
+  background: rgba(59, 130, 246, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  animation: tumLocationPulse 1.8s ease-out infinite;
+}
+
+.tum-origin-marker-dot {
+  width: 16px;
+  height: 16px;
+  background: #2563eb;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+@keyframes tumLocationPulse {
+  0% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+  70% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.55);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.55);
+  }
+}
+
+.tum-destination-marker {
+  width: 34px;
+  height: 42px;
+  pointer-events: none;
+  z-index: 9;
+}
+
+.tum-destination-marker::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 14px;
+  height: 14px;
+  background: #facc15;
+  border-right: 3px solid #111;
+  border-bottom: 3px solid #111;
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 2px;
+}
+
+.tum-destination-marker-core {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  background: #facc15;
+  border: 3px solid #111;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.tum-destination-marker-core::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #111;
+  transform: translate(-50%, -50%);
+}
+
+.tum-vehicle-marker {
+  width: 46px;
+  height: 62px;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.tum-vehicle-marker-assigned {
+  width: 54px;
+  height: 72px;
+  z-index: 12;
+}
+
+.tum-vehicle-marker-assigned::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 9999px;
+  background: rgba(250, 204, 21, 0.18);
+  border: 1px solid rgba(250, 204, 21, 0.7);
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.35);
+}
+
+.tum-vehicle-marker-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: 50% 50%;
+  transition: transform 320ms ease-out;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+
+/* Polimento do menu lateral do Passageiro */
+@keyframes tumDrawerEnter {
+  from {
+    opacity: 0.92;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tumCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tumSkeletonPulse {
+  0%, 100% { opacity: 0.38; }
+  50% { opacity: 0.76; }
+}
+
+.tum-drawer-enter {
+  animation: tumDrawerEnter 220ms cubic-bezier(.22, .8, .25, 1) both;
+}
+
+.tum-card-enter {
+  opacity: 0;
+  animation: tumCardEnter 230ms cubic-bezier(.22, .8, .25, 1) forwards;
+}
+
+.tum-skeleton {
+  background: rgba(255, 255, 255, 0.10);
+  animation: tumSkeletonPulse 1.2s ease-in-out infinite;
+}
+
+html.light .tum-skeleton {
+  background: rgba(17, 18, 20, 0.09);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tum-drawer-enter,
+  .tum-card-enter,
+  .tum-skeleton {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+
+/* Polimento da Home e das opções de corrida */
+@keyframes tumSoftEnter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tumSheetEnter {
+  from { opacity: .94; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tumOptionEnter {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tumStopEnter {
+  from { opacity: 0; transform: scale(.985) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes tumSearchOrbit {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, .07); }
+  50% { box-shadow: 0 0 0 10px rgba(250, 204, 21, .025); }
+}
+
+.tum-soft-enter { animation: tumSoftEnter 220ms cubic-bezier(.22,.8,.25,1) both; }
+.tum-home-sheet, .tum-ride-options { animation: tumSheetEnter 240ms cubic-bezier(.22,.8,.25,1) both; }
+.tum-option-enter { opacity: 0; animation: tumOptionEnter 230ms cubic-bezier(.22,.8,.25,1) forwards; }
+.tum-stop-enter { animation: tumStopEnter 190ms cubic-bezier(.22,.8,.25,1) both; }
+.tum-search-orbit { animation: tumSearchOrbit 1.6s ease-in-out infinite; }
+
+.tum-press {
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
+}
+.tum-press:active:not(:disabled) { transform: scale(.975); }
+.tum-primary-cta:active:not(:disabled) { transform: scale(.985); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tum-soft-enter, .tum-home-sheet, .tum-ride-options, .tum-option-enter, .tum-stop-enter, .tum-search-orbit {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .tum-press:active:not(:disabled), .tum-primary-cta:active:not(:disabled) { transform: none !important; }
+}
+
+/* Fase 3 — acompanhamento da corrida e avaliação */
+@keyframes tumRideSheetEnter {
+  from { opacity: .94; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tumRatingEnter {
+  from { opacity: .92; transform: translateY(22px) scale(.995); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes tumJourneyGlow {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(250, 204, 21, 0); }
+  50% { box-shadow: inset 0 0 28px rgba(250, 204, 21, .025); }
+}
+
+@keyframes tumStarPop {
+  0% { transform: scale(.92); }
+  55% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.tum-ride-live-sheet {
+  animation: tumRideSheetEnter 240ms cubic-bezier(.22,.8,.25,1) both;
+}
+
+.tum-rating-sheet {
+  animation: tumRatingEnter 260ms cubic-bezier(.22,.8,.25,1) both;
+}
+
+.tum-journey-progress {
+  animation: tumJourneyGlow 2.4s ease-in-out infinite;
+}
+
+.tum-rating-star {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 150ms ease, background-color 150ms ease;
+}
+
+.tum-rating-star:active { transform: scale(.9); }
+.tum-rating-star.is-active { animation: tumStarPop 190ms cubic-bezier(.22,.8,.25,1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tum-ride-live-sheet,
+  .tum-rating-sheet,
+  .tum-journey-progress,
+  .tum-rating-star.is-active {
+    animation: none !important;
+  }
+  .tum-rating-star:active { transform: none !important; }
+}
+
+/* Fase 5 — autenticação, conta e locais salvos */
+@keyframes tumAuthCardEnter {
+  from { opacity: .94; transform: translateY(10px) scale(.995); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes tumProfileSheetEnter {
+  from { opacity: .94; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tumFavoriteSheetEnter {
+  from { opacity: .95; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* Auth no Android: permite rolar o cadastro mesmo com teclado/telas menores. */
+.tum-auth-page {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+.tum-auth-page::-webkit-scrollbar { display: none; }
+
+.tum-auth-card {
+  animation: tumAuthCardEnter 260ms cubic-bezier(.22,.8,.25,1) both;
+}
+
+.tum-profile-sheet {
+  animation: tumProfileSheetEnter 240ms cubic-bezier(.22,.8,.25,1) both;
+}
+
+.tum-favorite-sheet {
+  animation: tumFavoriteSheetEnter 220ms cubic-bezier(.22,.8,.25,1) both;
+}
+
+html.light .tum-auth-page {
+  background: rgb(var(--tum-bg));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tum-auth-card,
+  .tum-profile-sheet,
+  .tum-favorite-sheet {
+    animation: none !important;
+  }
+}
+
+
+/* Android/WebView: o menu nativo do select abre com fundo claro.
+   Mantém o campo fechado branco no fundo escuro, mas força as opções legíveis. */
+.tum-city-select option {
+  color: #111111 !important;
+  background-color: #ffffff !important;
+}
+
+/* --------------------------------------------------------------------------
+   TUM LIGHT 2026 — paleta oficial do tema claro
+   Referência visual: branco limpo + amarelo vivo #FEC60F + preto suave.
+   Mantém o tema escuro intacto e corrige todas as telas que ainda usam
+   utilitários text-white/bg-black herdados do dark mode.
+   -------------------------------------------------------------------------- */
+html.light {
+  color-scheme: only light;
+  --tum-bg: 247 247 248;
+  --tum-surface: 255 255 255;
+  --tum-surface-alt: 246 247 248;
+  --tum-yellow: 254 198 15;
+  --tum-yellow-dark: 239 181 0;
+}
+
+html.light body {
+  background: #f7f7f8;
+  color: #141518;
+}
+
+/* Texto principal */
+html.light .text-white { color: #141518 !important; }
+html.light [class~="text-white/90"] { color: #25262a !important; }
+html.light [class~="text-white/80"],
+html.light [class~="text-white/[0.80]"] { color: #383a3f !important; }
+html.light [class~="text-white/75"],
+html.light [class~="text-white/[0.75]"] { color: #44464b !important; }
+html.light [class~="text-white/70"],
+html.light [class~="text-white/[0.70]"] { color: #505258 !important; }
+html.light [class~="text-white/65"] { color: #5d6066 !important; }
+html.light [class~="text-white/62"] { color: #63666c !important; }
+html.light [class~="text-white/60"] { color: #696c72 !important; }
+html.light [class~="text-white/58"] { color: #6e7177 !important; }
+html.light [class~="text-white/55"],
+html.light [class~="text-white/[0.55]"] { color: #76797f !important; }
+html.light [class~="text-white/52"] { color: #7e8187 !important; }
+html.light [class~="text-white/50"] { color: #85888e !important; }
+html.light [class~="text-white/48"],
+html.light [class~="text-white/[0.48]"] { color: #898c91 !important; }
+html.light [class~="text-white/45"],
+html.light [class~="text-white/[0.45]"] { color: #8f9297 !important; }
+html.light [class~="text-white/42"],
+html.light [class~="text-white/[0.42]"] { color: #96999e !important; }
+html.light [class~="text-white/40"],
+html.light [class~="text-white/[0.40]"] { color: #9b9ea3 !important; }
+html.light [class~="text-white/38"] { color: #a0a3a8 !important; }
+html.light [class~="text-white/35"],
+html.light [class~="text-white/[0.35]"] { color: #a7aaae !important; }
+html.light [class~="text-white/32"] { color: #adb0b4 !important; }
+html.light [class~="text-white/30"] { color: #b2b5b9 !important; }
+html.light [class~="text-white/28"],
+html.light [class~="text-white/[0.28]"] { color: #b6b9bd !important; }
+html.light [class~="text-white/27"] { color: #b9bbbf !important; }
+html.light [class~="text-white/25"] { color: #bdc0c3 !important; }
+html.light [class~="text-white/22"] { color: #c2c4c7 !important; }
+html.light [class~="text-white/15"] { color: #d0d2d4 !important; }
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #a1a4a9 !important;
+  opacity: 1;
+}
+
+/* Bordas: cinza claro e limpo, como na referência */
+html.light [class~="border-white/20"] { border-color: #d8dade !important; }
+html.light [class~="border-white/15"] { border-color: #dee0e3 !important; }
+html.light [class~="border-white/10"] { border-color: #e3e5e8 !important; }
+html.light [class~="border-white/8"],
+html.light [class~="border-white/[0.08]"] { border-color: #e6e8ea !important; }
+html.light [class~="border-white/7"] { border-color: #e8e9eb !important; }
+html.light [class~="border-white/6"] { border-color: #eaebed !important; }
+html.light [class~="border-white/5"] { border-color: #eceef0 !important; }
+
+/* Superfícies translúcidas usadas originalmente no dark */
+html.light [class~="bg-white/20"] { background-color: #eceef0 !important; }
+html.light [class~="bg-white/15"] { background-color: #f0f1f3 !important; }
+html.light [class~="bg-white/10"] { background-color: #f3f4f5 !important; }
+html.light [class~="bg-white/8"] { background-color: #f4f5f6 !important; }
+html.light [class~="bg-white/7"] { background-color: #f5f6f7 !important; }
+html.light [class~="bg-white/5"],
+html.light [class~="bg-white/[0.05]"],
+html.light [class~="bg-white/[0.045]"],
+html.light [class~="bg-white/[0.035]"],
+html.light [class~="bg-white/[0.03]"],
+html.light [class~="bg-white/[0.025]"] {
+  background-color: #f7f7f8 !important;
+}
+
+/* Fundos pretos leves viram cartões claros. Backdrops 60%+ permanecem escuros. */
+html.light [class~="bg-black/10"],
+html.light [class~="bg-black/15"],
+html.light [class~="bg-black/18"],
+html.light [class~="bg-black/20"] {
+  background-color: #f4f5f6 !important;
+}
+html.light .bg-black {
+  background-color: #ffffff !important;
+}
+
+/* Cards e sheets */
+html.light [class~="bg-tum-dark-2/[0.92]"],
+html.light [class~="bg-tum-dark-2/[0.97]"],
+html.light [class~="bg-tum-dark-2/[0.98]"] {
+  background-color: rgba(255, 255, 255, .98) !important;
+}
+
+html.light .tum-home-sheet,
+html.light .tum-ride-options,
+html.light .tum-ride-live-sheet,
+html.light .tum-rating-sheet,
+html.light .tum-profile-sheet,
+html.light .tum-favorite-sheet {
+  border-color: #e5e7e9 !important;
+  box-shadow: 0 -12px 34px rgba(17, 18, 20, .10) !important;
+}
+
+html.light .tum-drawer-enter {
+  box-shadow: 18px 0 42px rgba(17, 18, 20, .10);
+}
+
+/* Amarelo da referência visual: vivo, sem o aspecto mostarda/opaco. */
+html.light .tum-primary-cta {
+  background: #fec60f !important;
+  color: #111214 !important;
+  box-shadow: 0 10px 25px rgba(254, 198, 15, .24) !important;
+}
+
+html.light .tum-primary-cta:hover:not(:disabled) {
+  background: #efb500 !important;
+}
+
+/* Mesmo desabilitado, o botão mantém a identidade amarela e não vira bege. */
+html.light .tum-primary-cta:disabled {
+  opacity: 1 !important;
+  background: #fec60f !important;
+  color: rgba(17, 18, 20, .45) !important;
+  box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Home compacta — mais mapa visível e ações sempre acessíveis.
+   O conteúdo rola internamente; CTA e "Mostrar mais detalhes" ficam no rodapé.
+   -------------------------------------------------------------------------- */
+.tum-home-sheet {
+  transition: max-height 220ms cubic-bezier(.22,.8,.25,1);
+}
+
+.tum-home-sheet--compact .tum-trip-addresses input {
+  padding-top: .58rem !important;
+  padding-bottom: .58rem !important;
+}
+
+.tum-home-sheet--compact .tum-trip-addresses > * + * {
+  margin-top: .38rem !important;
+}
+
+.tum-home-sheet-actions {
+  background: rgb(var(--tum-surface));
+}
+
+html.dark .tum-home-sheet-actions {
+  background: rgb(var(--tum-surface));
+}
+
+html.light .tum-home-sheet-actions {
+  background: #ffffff;
+}
+
+html.light .tum-sheet-details-toggle {
+  color: #777a80 !important;
+}
+
+html.light .tum-sheet-details-toggle:hover {
+  color: #b88c00 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tum-home-sheet { transition: none !important; }
+}
+
+/* Estados interativos do tema claro — evitam voltar para branco/preto ao tocar. */
+html.light [class~="hover:text-white"]:hover { color: #141518 !important; }
+html.light [class~="hover:bg-white/10"]:hover { background-color: #eceef0 !important; }
+html.light [class~="hover:bg-white/5"]:hover,
+html.light [class~="hover:bg-white/[0.035]"]:hover,
+html.light [class~="hover:bg-white/[0.05]"]:hover,
+html.light [class~="hover:bg-white/[0.075]"]:hover,
+html.light [class~="hover:bg-white/[0.08]"]:hover { background-color: #f1f2f4 !important; }
+html.light [class~="focus-within:bg-black/25"]:focus-within { background-color: #f1f2f4 !important; }
+html.light [class~="hover:border-white/15"]:hover { border-color: #d9dce0 !important; }
+html.light [class~="text-white/[0.60]"] { color: #696c72 !important; }
+html.light [class~="text-white/[0.25]"] { color: #bdc0c3 !important; }
+html.light [class~="bg-white/6"] { background-color: #f6f7f8 !important; }
+
+
+/* --------------------------------------------------------------------------
+   Ajustes finos da referência clara
+   -------------------------------------------------------------------------- */
+/* A lupa do CTA usa exatamente o mesmo amarelo do botão, sem caixa branca. */
+.tum-cta-search-icon {
+  background: #fec60f !important;
+  color: #111214 !important;
+}
+html.light .tum-cta-search-icon {
+  background: #fec60f !important;
+  color: #111214 !important;
+}
+
+/* Sair da conta: vermelho mais forte, profundo e legível. */
+.tum-menu-danger {
+  color: #fa0505 !important;
+}
+.tum-menu-danger:hover,
+.tum-menu-danger:active {
+  background: rgba(193, 18, 31, .065) !important;
+}
+.tum-menu-danger-icon {
+  color: #fa0505 !important;
+  border-color: rgba(193, 18, 31, .22) !important;
+  background: rgba(193, 18, 31, .075) !important;
+}
+.tum-menu-danger-helper {
+  color: rgba(193, 18, 31, .64) !important;
+}
+html.light .tum-menu-danger {
+  color: #b80f1a !important;
+}
+html.light .tum-menu-danger-icon {
+  color: #b80f1a !important;
+  border-color: rgba(184, 15, 26, .24) !important;
+  background: rgba(184, 15, 26, .07) !important;
+}
+html.light .tum-menu-danger-helper {
+  color: rgba(184, 15, 26, .66) !important;
+}
+
+/* Ajuste final da Home compacta: o painel normal fica abaixo da metade da tela.
+   Favoritos/detalhes ficam no estado expandido; origem, destino e CTAs continuam fixos. */
+.tum-home-sheet--compact {
+  max-height: min(43dvh, 360px) !important;
+}
+
+.tum-home-sheet--compact .tum-stop-enter {
+  display: none !important;
+}
+
+.tum-home-sheet--compact .tum-trip-addresses {
+  flex-shrink: 0;
+}
+
+.tum-home-sheet--expanded {
+  max-height: min(72dvh, 720px) !important;
+}
+
+.tum-home-sheet--compact .tum-home-sheet-actions {
+  padding-top: .35rem !important;
+  padding-bottom: 0 !important;
+}
+
+.tum-home-sheet--compact .tum-sheet-details-toggle {
+  margin-top: .15rem !important;
+  padding-top: .15rem !important;
+  padding-bottom: .15rem !important;
+}
+
+@media (max-height: 700px) {
+  .tum-home-sheet--compact {
+    max-height: 46dvh !important;
+  }
+
+  .tum-home-sheet--compact .tum-trip-addresses {
+    padding: .42rem !important;
+  }
+
+  .tum-home-sheet--compact .tum-trip-addresses input {
+    padding-top: .48rem !important;
+    padding-bottom: .48rem !important;
+  }
+
+  .tum-home-sheet--compact .tum-home-sheet-actions > button {
+    min-height: 0 !important;
+  }
+}

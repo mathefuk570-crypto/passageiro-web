@@ -1,0 +1,19 @@
+TUM PASSAGEIRO — PATCH COMBINADO 10-09-2026
+
+Base esperada: versão V2 WebView/Mapbox que já corrigiu apagar/trocar rotas.
+
+Inclui:
+1. MapboxMapView.tsx
+   - motorista visível durante corrida
+   - camada do carrinho acima da rota
+   - enquadramento considera o painel inferior
+
+2. RideInProgress.tsx
+   - tela de corrida finalizada compacta em 100dvh
+   - sem rolagem vertical na tela final
+   - valor, motorista, distância, tempo, pagamento, Pix, avaliação, comentário, denúncia e botão final reorganizados para caber em uma tela
+   - aviso REC continua disponível quando necessário
+
+NÃO inclui o patch experimental de auto-follow 5s.
+
+Aplicação: extrair por cima de C:\TUM\Passageiroo e confirmar substituição.

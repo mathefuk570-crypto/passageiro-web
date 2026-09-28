@@ -1,0 +1,27 @@
+TUM Passageiro — permissões estruturais + áudio de chegada V5 WAV
+
+PERMISSÕES
+- Estado essencial passa a ser mantido no React Native.
+- O DOM recebe snapshot nativo e não transforma falha de bridge em 0/2.
+- Se Android confirma Localização + Notificações, entra direto.
+- Se realmente faltarem, os pedidos continuam automáticos.
+
+ÁUDIO DE CHEGADA
+- O dumpsys comprovou que V4 foi criado com o SOM PADRÃO do Android.
+- Criamos canais NOVOS V5.
+- A voz e o som de chegada foram convertidos para WAV PCM mono 44.1 kHz
+  e nomes curtos: chegou_voz.wav / chegou_som.wav.
+- app.json e plugin garantem esses arquivos em res/raw.
+- O app loga [TUM][ARRIVAL_AUDIO] para conferir o canal.
+
+IMPORTANTE
+- O backend AINDA NÃO deve ser trocado para V5 antes de instalar e abrir
+  este APK uma vez. Primeiro confirme no dumpsys que V5 aponta para:
+  android.resource://com.tornado.tum.passageiro/raw/chegou_voz
+- Depois disso o backend pode ser alterado de V4 -> V5 sem risco de o
+  FCM criar o canal V5 com som padrão antes do app.
+
+Este patch exige:
+1) npm run typecheck
+2) npx expo prebuild --clean
+3) build release

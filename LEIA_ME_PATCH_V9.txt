@@ -1,0 +1,15 @@
+TUM Passageiro — PATCH V9 — Pin proporcional
+
+Correção:
+- O pin temporário não usa mais tamanho fixo de 36 px.
+- Agora respeita o "Tamanho dos pins" configurado no Painel ADM.
+- Mantém exatamente a proporção 419x595 da imagem enviada.
+- Faixa segura: 20 a 28 px de largura, para nunca ficar gigante no mapa.
+- Com a configuração atual de ~23 px, ele renderiza em aproximadamente 23x33 px.
+- Mantém o comportamento do V8: só aparece depois de tocar no mapa.
+
+Arquivo alterado:
+dom/src/components/RasterMapView.tsx
+
+Aplicar em cima do V8 e reiniciar:
+npx expo start --dev-client -c

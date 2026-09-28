@@ -1,0 +1,20 @@
+TUM PASSAGEIRO — PATCH CUMULATIVO PRÉ-BUILD 08/09/2026
+
+Este patch já inclui:
+1) áudio/notificações em segundo plano + canal de chat v2;
+2) rota da corrida secundária/fila;
+3) tipagem dos novos dados privados de rota da fila.
+
+Backend Supabase já aplicado em produção:
+- chat Android -> tum-chat-messages-v2;
+- get_passenger_ride_details: expõe somente coordenadas/status da corrida principal para desenho do mapa, sem nome/endereço;
+- update_driver_ride_stage: distância estimada só é fallback quando existem 0 pontos GPS. Com 1+ ponto, o valor final segue os dados reais disponíveis, igual ao cálculo ao vivo.
+
+ROTA DA FILA
+- corrida principal ainda não iniciou: vermelho = posição do motorista -> embarque principal -> destino principal;
+- corrida principal em andamento: vermelho = posição atual -> destino principal;
+- passageiro é o próximo da fila: amarelo = fim da principal -> embarque do passageiro da fila;
+- nenhum nome/endereço da corrida principal é exibido.
+
+IMPORTANTE
+Como este patch inclui o app.json do patch de áudio, rode npx expo prebuild --clean antes de gradlew assembleRelease.

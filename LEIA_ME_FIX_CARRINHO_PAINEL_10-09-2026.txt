@@ -1,0 +1,18 @@
+TUM Passageiro — Patch carrinho visível + enquadramento acima do painel
+Base: TUM_PASSAGEIRO_WEBVIEW_ROTAS_V2_09-09-2026
+
+Corrige somente o mapa WebView/Mapbox:
+1) Durante corrida aceita, o fitBounds mede a altura REAL do painel .tum-ride-live-sheet e reserva esse espaço no padding inferior.
+2) O bounds inclui a coordenada EXATA do motorista atribuído e do ponto de embarque, além da geometria retornada pelo Directions.
+3) As layers dos carros são trazidas para frente depois da rota, evitando o carrinho ficar coberto por layers da rota/Mapbox Standard.
+4) Mantida integralmente a correção V2 que resolveu troca/apagamento das rotas.
+5) NÃO inclui o patch de auto-follow 5 s descartado.
+
+Aplicar por cima da pasta baseada na V2, substituindo o arquivo:
+dom/src/components/MapboxMapView.tsx
+
+Depois rodar:
+npm run typecheck
+npx expo export --platform android --clear
+cd android
+gradlew assembleRelease

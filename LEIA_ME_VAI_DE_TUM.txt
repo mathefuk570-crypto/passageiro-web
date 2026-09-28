@@ -1,0 +1,15 @@
+TUM Passageiro - som de comunicados "Vai de TUM"
+
+Arquivos deste patch:
+- app.json
+- app/index.tsx
+- plugins/withTumPassengerNotificationSounds.js
+- public/sounds/va_de_tum.wav
+
+Novo canal Android:
+- ID: tum-comunicados-v1
+- Nome: Comunicados do TUM
+- Som: va_de_tum.wav
+
+Esse canal é separado de corrida e chat.
+IMPORTANTE: como o WAV precisa entrar no APK/AAB, o som personalizado só fica disponível depois de gerar e instalar um NOVO build nativo. Reload do Metro sozinho não adiciona o recurso ao APK já instalado.

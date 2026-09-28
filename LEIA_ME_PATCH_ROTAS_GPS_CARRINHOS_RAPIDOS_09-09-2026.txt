@@ -1,0 +1,68 @@
+TUM PASSAGEIRO — PATCH ROTAS + GPS + CARRINHOS RÁPIDOS
+Data: 09/09/2026
+
+BASE
+Este patch foi feito EM CIMA do último patch validado/testado:
+TUM_PASSAGEIRO_PATCH_MAPA_ESTAVEL_CORRIGIDO_SEM_REGRESSAO_08-09-2026.zip
+
+ALTERA SOMENTE
+- dom/src/components/HomeScreen.tsx
+- dom/src/components/MapboxMapView.tsx
+
+NÃO ALTERA
+- permissões/modal já validado
+- áudio V7 / NotificationChannel
+- shrinkResources=false / minify=true
+- compartilhamento Cloudflare
+- fila / dados privados da fila
+- preço real/final
+- REC / segurança
+- chat
+- login
+- MapView roteador Mapbox/Google
+- painel ADM
+- arquivos Android/nativos
+
+CORREÇÕES
+1) CARRINHOS MAIS RÁPIDOS AO ABRIR
+- localização do passageiro é publicada antes do reverse geocode;
+- busca dos motoristas começa assim que há coordenada, sem esperar endereço;
+- cache curto da última localização permite reabertura muito rápida;
+- atualização dos motoristas próximos: 2 s (antes 3 s);
+- lista válida continua preservada em falha transitória.
+
+2) LOCALIZAÇÃO MAIS ROBUSTA
+- remove fallback falso fixo de Ibitinga no carregamento;
+- tenta ponte nativa de GPS mais de uma vez em falha transitória;
+- usa geolocation da WebView como fallback;
+- botão centralizar reutiliza o mesmo fluxo robusto;
+- mapa só é liberado no primeiro uso depois da tentativa inicial de localização;
+- reverse geocode ocorre em segundo plano e não bloqueia mapa/carrinhos.
+
+3) FLUXO DE ROTAS
+- destino escolhido: desenha imediatamente embarque -> paradas -> destino e depois substitui pela geometria real do Mapbox;
+- ao solicitar corrida: a rota escolhida não é apagada;
+- motorista aceitou: troca imediatamente para motorista -> embarque;
+- antes do embarque NÃO desenha o destino junto;
+- conforme o motorista se move, a rota é recalculada e o fit/zoom acompanha a aproximação;
+- viagem iniciada: motorista -> paradas restantes -> destino;
+- última rota válida continua na tela em falha/recalculo transitório.
+
+4) MAPBOX
+- rota principal ganhou IDs exclusivos TUM para evitar colisão/ocultação com Mapbox Standard;
+- rota é restaurada e trazida para frente após style.load/troca de tema;
+- enquadramento reage a movimentos menores do motorista.
+
+FILA
+A lógica dedicada de fila (rota atual vermelha + próxima amarela) foi preservada.
+
+CONTAGEM DE ESPERA
+O backend/estado de chegada já usa waiting_started_at e status waiting. Este patch não substitui RideInProgress para evitar regressão em UI/fila/segurança. Confirmar no teste real se o contador visual atual aparece ao motorista marcar "Cheguei". Se não aparecer, corrigir SOMENTE o RideInProgress atual na próxima rodada.
+
+VALIDAÇÃO FEITA AQUI
+- HomeScreen.tsx: sintaxe TypeScript/TSX OK
+- MapboxMapView.tsx: sintaxe TypeScript/TSX OK
+
+VALIDAÇÃO NO PROJETO REAL
+Após copiar por cima de C:\TUM\Passageiro, rodar o typecheck do projeto.
+Como são mudanças somente TS/TSX, NÃO fazer prebuild --clean.

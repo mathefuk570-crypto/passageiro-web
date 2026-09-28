@@ -1,0 +1,19 @@
+TUM PASSAGEIRO — ÚLTIMOS 2 ERROS — 08/09/2026
+
+1) PERMISSÕES
+- Não altera a tela nem o fluxo visual.
+- Quando Localização + Notificações forem confirmadas juntas uma vez, o app grava uma memória persistente local.
+- Leituras transitórias/falsos "Pendente" do Android não voltam a prender o usuário nessa tela.
+- A memória permanece entre fechamentos e atualizações do app; só some se os dados do app forem apagados ou ele for desinstalado.
+
+2) ÁUDIO "MOTORISTA CHEGOU"
+- O canal Android de chegada passa para V3, forçando um canal novo com motorista_chegou_com_voz.mp3.
+- O backend send-passenger-ride-status também foi atualizado para usar V3 no evento arrived.
+- Os demais eventos/canais foram mantidos.
+
+Arquivos alterados:
+- app/index.tsx
+- dom/src/components/NativePermissionsGate.tsx
+
+Após aplicar: npm run typecheck
+Não é necessário prebuild por causa deste patch; ele não muda app.json nem código nativo.

@@ -1,0 +1,24 @@
+TUM PASSAGEIRO - OTIMIZACAO 15/08/2026
+
+Alteracoes aplicadas sem remover funcoes do Passageiro:
+- Menos atualizacoes pesadas do Mapbox durante a animacao do motorista.
+- Animacao do carrinho limitada a 30 atualizacoes visuais/s e reutiliza objetos GeoJSON.
+- Realtime da corrida continua imediato; polling completo virou apenas fallback a cada 8s.
+- Posicao do motorista na corrida consultada a cada 1,1s e menos quando o app esta oculto.
+- Motoristas proximos continuam atualizados a cada 3s.
+- Motoristas parados nao forcam novo render apenas por mudanca de updated_at.
+- Props do mapa (paradas/motoristas/registro) estabilizadas para evitar recriar marcadores sem necessidade.
+- Token push nativo nao e registrado novamente por alteracoes irrelevantes do perfil.
+- Release Android limitado a ARMv7 + ARM64 (sem x86/x86_64 do emulador).
+- GIF/WebP nativo Fresco desativado (interface principal roda no DOM/WebView e nao depende desses decoders).
+- R8/minify + shrinkResources habilitados em release.
+- Source maps .js.map excluidos do APK de producao.
+- Caches/builds/node_modules removidos do ZIP.
+
+Antes de gerar release:
+1. npm install
+2. npm run typecheck
+3. build/testar no aparelho real
+
+Observacao: R8/shrinkResources exige teste de release completo. Se alguma biblioteca nativa especifica reclamar,
+revisar regras ProGuard antes de publicar.

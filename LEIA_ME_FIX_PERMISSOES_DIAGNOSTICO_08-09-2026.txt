@@ -1,0 +1,22 @@
+TUM PASSAGEIRO — correção de permissões baseada no diagnóstico real do aparelho
+
+Evidência coletada:
+- Android/dumpsys: POST_NOTIFICATIONS, ACCESS_FINE_LOCATION e ACCESS_COARSE_LOCATION = granted=true.
+- Mesmo assim a tela DOM mostrava 0/2 PENDENTE.
+- O logcat confirmou que o popup nativo de localização abre no primeiro fluxo, e que em uma reabertura o React Native/WebView sobe novamente sem necessidade de novo popup.
+
+Correção:
+- a tela não exibe 0/2 enquanto o bridge React Native/WebView ainda está estabilizando;
+- na entrada ela chama diretamente o resolver nativo idempotente;
+- se as permissões já estiverem liberadas, entra sem popup;
+- se estiverem faltando, localização e notificações são pedidas automaticamente;
+- leituras nativas são confirmadas em múltiplas tentativas para evitar snapshot transitório;
+- removida a dependência da memória local que podia ficar incoerente entre processos/WebView;
+- adicionados logs [TUM][PERMS] no lado React Native para diagnóstico preciso caso algum aparelho ainda apresente comportamento anormal.
+
+Arquivos alterados:
+- app/index.tsx
+- dom/src/components/NativePermissionsGate.tsx
+
+Não altera áudio, corrida, mapa, compartilhamento, Supabase ou gravação.
+Não exige expo prebuild; após typecheck, pode gerar o release diretamente.

@@ -1,0 +1,108 @@
+{
+  "expo": {
+    "name": "TUM Passageiro",
+    "slug": "tum-passageiro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./public/icon-512.png",
+    "scheme": "tumpassageiro",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./public/icon-192.png",
+          "color": "#FACC15",
+          "defaultChannel": "tum-geral",
+          "sounds": [
+            "./public/sounds/corrida_aceita_com_voz.mp3",
+            "./public/sounds/corrida_aceita_som.mp3",
+            "./public/sounds/motorista_chegou_com_voz.mp3",
+            "./public/sounds/motorista_chegou_som.mp3",
+            "./public/sounds/viagem_iniciada_som.mp3",
+            "./public/sounds/corrida_finalizada_som.mp3",
+            "./public/sounds/corrida_cancelada.mp3",
+            "./public/sounds/mensagem_recebida.mp3",
+            "./public/sounds/chegou_voz.wav",
+            "./public/sounds/chegou_som.wav",
+            "./public/sounds/va_de_tum.wav"
+          ]
+        }
+      ],
+      "./plugins/withTumPassengerNotificationSounds",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FDE103",
+          "image": "./public/icon-512.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#FDE103",
+            "image": "./public/icon-512.png"
+          }
+        }
+      ],
+      "expo-system-ui",
+      "./plugins/withTumPassengerReleaseOptimization"
+    ],
+    "android": {
+      "package": "com.tornado.tum.passageiro",
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./public/icon-512.png",
+        "backgroundColor": "#FDE103"
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.FOREGROUND_SERVICE_CAMERA",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ],
+      "softwareKeyboardLayoutMode": "pan",
+      "blockedPermissions": [
+        "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "O TUM usa sua localização para definir o embarque e acompanhar a corrida.",
+        "NSMicrophoneUsageDescription": "O TUM usa o microfone para enviar áudios no chat da corrida.",
+        "NSCameraUsageDescription": "O TUM usa a câmera somente quando você inicia uma gravação de segurança ou abre o preview."
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./public/icon-192.png",
+      "name": "TUM Passageiro",
+      "shortName": "TUM"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9e54a1fd-43b7-4645-bea4-e3b4b9bb244d"
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+TUM Passageiro — correção estrutural do bug intermitente 0/2
+
+O Android continuava com Localização e Notificações = granted.
+A tela 0/2 aparecia quando o DOM/WebView não recebia uma resposta válida da Promise pelo bridge.
+
+Correção:
+- React Native mantém o estado real das permissões.
+- Lê o PackageManager no startup e ao voltar para ACTIVE.
+- Passa o snapshot ao DOM como prop.
+- Falha/undefined do bridge não vira 0/2.
+- granted+granted => entra direto.
+- se realmente faltar permissão => pedidos continuam automáticos.
+- enquanto não existe snapshot => só "Preparando o TUM".
+
+TS/TSX apenas. Não precisa prebuild.

@@ -1,0 +1,27 @@
+TUM - PATCH MAPA PASSAGEIRO - 25/09/2026
+
+CORRIGE:
+1. Mapa borrado / sensação de PNG sendo arrastado
+   - Passageiro volta a usar Mapbox GL vetorial como renderer principal.
+   - Raster/Leaflet fica somente como fallback de emergência.
+
+2. Pins/POIs aparecendo todos de uma vez
+   - Pins entram somente em zoom mais próximo.
+   - Colisão nativa do Mapbox volta a decidir quais pins cabem na tela.
+   - Estilo oficial não tem mais minZoom forçado artificialmente.
+
+3. Animação da rota configurada no Painel ADM
+   - Renderer Mapbox suporta novamente a animação.
+   - Alterações de routeAnimated, velocidade, cores, espessuras e opacidades
+     são aplicadas em runtime mesmo sem depender apenas de config_revision.
+
+COMO APLICAR:
+Copie a pasta "dom" deste patch para a raiz de C:\TUM\Passageiroo e confirme
+SUBSTITUIR os 2 arquivos existentes.
+
+Arquivos alterados:
+- dom/src/components/MapView.tsx
+- dom/src/components/MapboxMapView.tsx
+
+Depois, com o Metro aberto, salve/recarregue o app no MuMu. Se o bundler não
+pegar a alteração, pare o Metro e rode novamente com cache limpo.

@@ -1,0 +1,19 @@
+apply plugin: 'com.android.library'
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'expo.modules.tumsafety'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.tumsafety"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+dependencies {
+  implementation "androidx.core:core-ktx:1.13.1"
+  implementation "androidx.biometric:biometric:1.1.0"
+  implementation "androidx.work:work-runtime:2.11.2"
+}

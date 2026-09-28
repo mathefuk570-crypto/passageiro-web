@@ -1,0 +1,30 @@
+TUM PASSAGEIRO — COMPLEMENTO DO PATCH DE MAPA/GPS — 09/09/2026
+
+APLICAR POR CIMA DO PROJETO QUE JÁ ESTÁ COM:
+TUM_PASSAGEIRO_PATCH_ROTAS_GPS_CARRINHOS_RAPIDOS_09-09-2026
+
+Arquivos alterados:
+- dom/src/components/HomeScreen.tsx
+- dom/src/components/MapboxMapView.tsx
+- dom/src/components/RideInProgress.tsx
+
+Ajustes finais:
+1. Na primeira abertura, após o GPS ficar pronto, a busca dos motoristas ganha 420 ms de head-start antes de o Mapbox aparecer. Isso reduz o efeito de mapa abrir vazio e o carrinho surgir depois.
+2. O enquadramento da rota usa a altura real da tela. A rota deixa de ficar escondida atrás do card inferior em celulares altos.
+3. Durante corrida aceita, fitBounds acompanha motorista -> passageiro e fecha o zoom conforme a distância diminui.
+4. Ao o motorista marcar CHEGUEI, o Passageiro mostra contador de espera MM:SS usando waiting_started_at/arrived_at do backend.
+
+NÃO altera:
+- áudio V7
+- notificações/chat
+- compartilhamento Cloudflare
+- preço
+- fila/backend
+- gravação REC
+- permissões Android
+- painel ADM/provedor de mapas
+
+Depois de aplicar, rodar apenas:
+npm run typecheck
+
+Não precisa prebuild para este complemento (somente TS/TSX).

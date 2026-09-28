@@ -1,0 +1,30 @@
+TUM Passageiro — áudio de chegada V7 / resource shrinker desligado
+
+PROVA DO DIAGNÓSTICO
+- chegou_voz.wav estava em src/main/res/raw
+- chegou_voz.wav estava em merged-not-compiled-resources
+- chegou_voz.wav estava em packaged_res
+- chegou_voz.wav NÃO estava no APK final
+- gradle.properties mostrou:
+  android.enableShrinkResourcesInReleaseBuilds=true
+  android.enableMinifyInReleaseBuilds=true
+
+CORREÇÃO
+- O plugin agora força apenas:
+  android.enableShrinkResourcesInReleaseBuilds=false
+- O minify continua ligado.
+- Isso custa apenas um pequeno aumento no APK e impede o Gradle de apagar
+  recursos raw usados dinamicamente por NotificationChannel.
+- Canal novo V7 porque V6 já foi criado no Android com som padrão.
+
+FLUXO
+1. Aplicar por cima de C:\TUM\Passageiro
+2. npm run typecheck
+3. npx expo prebuild --clean
+4. CONFIRMAR antes do build:
+   findstr /I /N "enableShrinkResourcesInReleaseBuilds enableMinifyInReleaseBuilds" android\gradle.properties
+   O shrink precisa aparecer FALSE e minify pode continuar TRUE.
+5. Buildar.
+6. Confirmar no APK que res/raw/chegou_voz existe.
+7. Instalar/abrir e conferir canal V7.
+8. Só depois mudar Supabase para V7.

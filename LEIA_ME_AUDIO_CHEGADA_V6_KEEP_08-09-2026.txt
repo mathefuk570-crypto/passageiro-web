@@ -1,0 +1,25 @@
+TUM Passageiro — correção comprovada do áudio de chegada
+
+Diagnóstico:
+- chegou_voz.wav EXISTE em android/app/src/main/res/raw
+- chegou_voz.wav EXISTE em intermediates/merged-not-compiled-resources
+- chegou_voz.wav EXISTE em intermediates/packaged_res
+- MAS não existe em res/raw dentro do APK final
+- Resultado: Android cria o canal com content://settings/system/notification_sound
+
+Causa:
+O resource shrinker do release remove o WAV porque o NotificationChannel
+referencia o nome dinamicamente e o shrinker não detecta o uso.
+
+Correção:
+- res/raw/keep.xml com tools:keep para os sons de chegada.
+- Plugin atualizado para recriar esse keep.xml em todo prebuild --clean.
+- Canal novo V6, pois V5 já foi criado no aparelho com som padrão e canais
+  Android não atualizam o som de forma confiável depois de criados.
+
+IMPORTANTE:
+O Supabase continua em V4 por enquanto.
+Depois do build, instale e ABRA o app uma vez.
+Primeiro verificamos se o V6 nasceu apontando para:
+android.resource://com.tornado.tum.passageiro/raw/chegou_voz
+Só então o backend será mudado para V6.

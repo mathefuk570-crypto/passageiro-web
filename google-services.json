@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "783507411153",
+    "project_id": "tum-passageiro",
+    "storage_bucket": "tum-passageiro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:783507411153:android:acfbcf08d06d967a5a35f0",
+        "android_client_info": {
+          "package_name": "com.tornado.tum.passageiro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi-qMP1oLBmp5qa7p2EgpbxisXQdTvWRk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,92 @@
+-- Merging decision tree log ---
+manifest
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:1:1-15:12
+INJECTED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:1:1-15:12
+	package
+		INJECTED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml
+	xmlns:android
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:1:11-69
+uses-permission#android.permission.CAMERA
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:2:3-63
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:2:20-60
+uses-permission#android.permission.RECORD_AUDIO
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:3:3-69
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:3:20-66
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:4:3-75
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:4:20-72
+uses-permission#android.permission.FOREGROUND_SERVICE_CAMERA
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:5:3-82
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:5:20-79
+uses-permission#android.permission.FOREGROUND_SERVICE_MICROPHONE
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:6:3-86
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:6:20-83
+uses-permission#android.permission.WAKE_LOCK
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:7:3-66
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:7:20-63
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:8:3-77
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:8:20-74
+application
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:9:3-14:17
+activity#expo.modules.tumsafety.SafetyGalleryUnlockActivity
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:5-191
+	android:excludeFromRecents
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:106-139
+	android:exported
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:81-105
+	android:theme
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:140-188
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:15-80
+activity#expo.modules.tumsafety.SafetyCameraPreviewActivity
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:5-179
+	android:screenOrientation
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:106-142
+	android:excludeFromRecents
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:143-176
+	android:exported
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:81-105
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:15-80
+activity#expo.modules.tumsafety.SafetyRecordingActivity
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:5-291
+	android:excludeFromRecents
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:127-160
+	android:launchMode
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:161-192
+	android:noHistory
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:102-126
+	android:exported
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:77-101
+	android:theme
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:240-288
+	android:taskAffinity
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:193-239
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:15-76
+service#expo.modules.tumsafety.SafetyRecordingService
+ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:5-181
+	android:exported
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:75-99
+	android:stopWithTask
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:100-128
+	android:foregroundServiceType
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:129-178
+	android:name
+		ADDED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:14-74
+uses-sdk
+INJECTED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml
+INJECTED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml

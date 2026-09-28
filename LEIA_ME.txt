@@ -1,0 +1,19 @@
+TUM Passageiro — ajuste da animação da rota (25/09/2026)
+
+Objetivo deste patch:
+- remover o feixe/faixa branca grande;
+- usar somente um pequeno reflexo branco percorrendo a rota;
+- sem borda, sem traço preto, sem linha branca comprida;
+- núcleo branco pequeno + halo muito suave/transparente;
+- movimento contínuo acompanhando a geometria da rota;
+- manter cor, espessura, contorno e opacidade configurados no painel ADM.
+
+Arquivos alterados:
+- dom/src/components/MapboxMapView.tsx
+- dom/src/components/RasterMapView.tsx
+- dom/src/components/GoogleMapView.tsx
+
+Aplicação:
+Extraia este ZIP por cima de C:\TUM\Passageiro e confirme a substituição.
+Depois, no Metro, pressione r para recarregar.
+Não precisa rodar npm install nem reinstalar o APK para este teste.

@@ -1,0 +1,22 @@
+TUM PASSAGEIRO - COMPATIBILIDADE CELULARES + EMULADORES
+
+Alteração desta variante:
+- reactNativeArchitectures = armeabi-v7a, arm64-v8a, x86, x86_64
+- removidos ABI splits locais; assembleRelease gera um único APK universal
+- mantém as correções atuais do Passageiro
+- AAB permanece indicado para Play Store
+
+Build limpo obrigatório:
+1) npm install
+2) npm run typecheck
+3) npx expo-doctor
+4) npx expo prebuild --clean
+5) cd android
+6) gradlew clean
+7) gradlew assembleRelease
+
+APK esperado: android/app/build/outputs/apk/release/app-release.apk
+
+Para descobrir a ABI do emulador/celular:
+adb shell getprop ro.product.cpu.abi
+adb shell getprop ro.product.cpu.abilist

@@ -1,0 +1,15 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <application>
+    <activity android:name="expo.modules.tumsafety.SafetyGalleryUnlockActivity" android:exported="false" android:excludeFromRecents="true" android:theme="@style/TumSafetyTransparentTheme" />
+    <activity android:name="expo.modules.tumsafety.SafetyCameraPreviewActivity" android:exported="false" android:screenOrientation="portrait" android:excludeFromRecents="true" />
+    <activity android:name="expo.modules.tumsafety.SafetyRecordingActivity" android:exported="false" android:noHistory="true" android:excludeFromRecents="true" android:launchMode="singleTask" android:taskAffinity="${applicationId}.safety" android:theme="@style/TumSafetyTransparentTheme" />
+    <service android:name="expo.modules.tumsafety.SafetyRecordingService" android:exported="false" android:stopWithTask="false" android:foregroundServiceType="camera|microphone" />
+  </application>
+</manifest>

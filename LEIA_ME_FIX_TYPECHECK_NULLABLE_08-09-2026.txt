@@ -1,0 +1,11 @@
+Correção do segundo e último erro de tipagem visto no print.
+
+Causa:
+- nativeEssentialPermissionsStatus passou a ser opcional para permitir <App /> no bootstrap web.
+- NativePermissionsGate aceita PassengerPermissionStatus | null, não undefined.
+
+Correção:
+- Passa explicitamente null quando a prop não existir:
+  nativeStatus={nativeEssentialPermissionsStatus ?? null}
+
+Não altera lógica das permissões, áudio, corrida ou compartilhamento.

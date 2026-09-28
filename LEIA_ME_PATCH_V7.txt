@@ -1,0 +1,29 @@
+TUM Passageiro — PATCH V7 — 25/09/2026
+
+PIN ARRASTÁVEL
+- Na tela "Nova viagem", há um pin amarelo arrastável no mapa.
+- Arraste o pin e solte no local desejado.
+- O app faz reverse geocode do ponto.
+- A confirmação oferece:
+  1. Definir como embarque
+  2. Definir como destino
+  3. Cancelar
+
+TECLADO / CAMPO DE EMBARQUE
+- Apenas a caixa "Onde você está?" sobe para ficar acima do teclado.
+- O restante do painel permanece no lugar.
+- As recomendações do embarque abrem para cima, acima da caixa.
+- Destino e paradas continuam com o comportamento atual.
+
+ARQUIVOS ALTERADOS
+dom/src/components/mapTypes.ts
+dom/src/components/AddressAutocomplete.tsx
+dom/src/components/RasterMapView.tsx
+dom/src/components/HomeScreen.tsx
+
+APLICAÇÃO
+Copie a pasta dom por cima de:
+C:\TUM\Passageiroo
+
+Depois reinicie o Metro:
+npx expo start --dev-client -c

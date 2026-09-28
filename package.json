@@ -1,1 +1,55 @@
-{"name":"tum-passageiro-pwa","version":"2026.9.17","private":true,"type":"module","scripts":{"dev":"vite --host 0.0.0.0","build":"tsc --noEmit && vite build && node scripts/build-sw.mjs","preview":"vite preview --host 0.0.0.0","typecheck":"tsc --noEmit"},"dependencies":{"@supabase/supabase-js":"2.58.0","lucide-react":"0.544.0","mapbox-gl":"3.26.0","react":"19.1.0","react-dom":"19.1.0"},"devDependencies":{"@types/mapbox-gl":"3.4.1","@types/react":"19.1.10","@types/react-dom":"19.1.9","autoprefixer":"10.4.21","postcss":"8.5.6","tailwindcss":"3.4.17","typescript":"5.9.2","vite":"6.4.1"}}
+{
+  "name": "tum-passageiro-native",
+  "main": "expo-router/entry",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "EXPO_NO_TELEMETRY=1 expo start",
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "prepare:play": "node scripts/preparePlayManifest.cjs",
+    "check:play": "node scripts/checkPlayManifest.cjs",
+    "web": "expo start --web",
+    "build:web": "expo export --platform web --clear"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~6.1.2",
+    "@supabase/supabase-js": "^2.58.0",
+    "@types/leaflet": "^1.9.22",
+    "expo": "~54.0.37",
+    "expo-constants": "~18.0.14",
+    "expo-device": "~8.0.10",
+    "expo-file-system": "~19.0.24",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-linking": "~8.0.12",
+    "expo-location": "~19.0.6",
+    "expo-notifications": "~0.32.17",
+    "expo-router": "~6.0.8",
+    "expo-sharing": "~14.0.8",
+    "expo-splash-screen": "~31.0.10",
+    "expo-status-bar": "~3.0.8",
+    "expo-system-ui": "~6.0.9",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.544.0",
+    "mapbox-gl": "^3.26.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-web": "^0.21.0",
+    "react-native-webview": "13.15.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@types/mapbox-gl": "^3.4.1",
+    "@types/react": "~19.1.10",
+    "@types/react-dom": "19.1.9",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.9.2"
+  }
+}

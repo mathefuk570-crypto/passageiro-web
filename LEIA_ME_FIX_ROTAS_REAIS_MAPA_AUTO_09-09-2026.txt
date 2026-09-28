@@ -1,0 +1,35 @@
+TUM PASSAGEIRO — FIX ROTAS REAIS + MAPA AUTOMÁTICO + CARRINHOS NA ABERTURA
+09/09/2026
+
+BASE:
+- feito em cima do Passageiro com os patches de 09/09 já aplicados;
+- preserva RideInProgress/contador de espera e demais sistemas validados.
+
+CAUSA CONCRETA DA ROTA RETA:
+- dom/src/lib/mapbox.ts enviava o parâmetro `language=pt-BR` para o Mapbox Directions v5 sem `steps=true`.
+- no Directions v5, `language` é parâmetro de instruções e exige `steps=true`.
+- a requisição falhava e o frontend ficava exibindo a geometria reta de fallback.
+
+CORREÇÕES:
+1. Directions Mapbox sem parâmetro inválido `language`.
+2. Retry curto do provedor de rotas em falha transitória.
+3. Linha reta deixa de ser apresentada como rota: só geometria real das ruas é desenhada.
+4. Ao digitar/trocar/apagar origem, destino ou parada, a rota antiga é invalidada imediatamente.
+5. Respostas antigas de rota continuam bloqueadas por sequence id.
+6. Corrida aceita: troca de contexto remove rota anterior e calcula motorista -> embarque.
+7. Recalculo da rota ativa mais responsivo (movimento ~5 m / janela ~3 s).
+8. Embarque: mapa deixa de exibir o pin do destino final durante a aproximação; mostra foco motorista + passageiro.
+9. Viagem iniciada: destino final volta ao mapa e a rota passa motorista -> paradas restantes -> destino.
+10. Carrinhos: primeira RPC é disparada/aguardada antes do Mapbox ser liberado (com limite curto), usando cache de localização quando existe.
+
+ARQUIVOS:
+- dom/src/components/HomeScreen.tsx
+- dom/src/lib/mapbox.ts
+
+APLICAR POR CIMA DE:
+C:\TUM\Passageiro
+
+DEPOIS:
+npm run typecheck
+
+Não fazer prebuild por causa deste patch: não há mudança nativa/app.json/plugin.

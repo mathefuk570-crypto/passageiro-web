@@ -1,0 +1,35 @@
+TUM Passageiro — patch isolado de mapa/rotas/carrinhos
+
+ALTERA SOMENTE:
+- dom/src/components/MapView.tsx
+- dom/src/components/HomeScreen.tsx
+
+NÃO ALTERA:
+- permissões
+- áudio V7
+- compartilhamento/Cloudflare
+- REC/gravação
+- preços
+- autenticação
+- app.json / Android nativo
+
+Correções:
+1. Motoristas online continuam visíveis mesmo durante corrida ativa.
+2. Identidade visual do carrinho usa driver_id estável (não o id da amostra GPS).
+3. GPS parado: micro-jitter é congelado; carro não fica girando para os lados.
+4. Heading usa heading_degrees quando o veículo realmente está em movimento.
+5. Leituras muito imprecisas não deslocam o carrinho parado.
+6. Movimento entre posições válidas é suavizado.
+7. Polls de motoristas não podem mais aplicar resposta antiga por cima da nova.
+8. Cache visual dos online aumentado para 30s para evitar pisca-pisca por pulso vazio.
+9. Ao traçar nova rota, aparece fallback imediatamente e a rota real substitui quando chegar.
+10. Falha momentânea do Mapbox não apaga a última rota.
+11. Segunda/terceira rota com mesmo destino ganha identidade própria no MapView.
+
+Backend já corrigido sem rebuild:
+- get_nearby_driver_markers_tum agora escolhe a localização mais nova por
+  COALESCE(location_sampled_at, updated_at), e não descarta writers que não
+  preencheram location_sampled_at.
+
+Como é TS/TSX apenas: NÃO precisa prebuild --clean.
+Depois de aplicar: npm run typecheck.

@@ -1,0 +1,17 @@
+TUM Passageiro — ajuste antes do build
+
+1) Corrida ativa
+- removido o botão "Ligar" e a chamada direta ao telefone do motorista;
+- mantidos Chat, Segurança e Cancelar em três colunas.
+
+2) Compartilhar corrida
+- o app agora gera link para o novo endpoint público ride-share-view;
+- página TUM em HTML com status, motorista, veículo, placa, embarque, destino e mapa;
+- atualização automática a cada 8 segundos durante corrida ativa;
+- mapa possui fallback para não virar tela preta caso o mapa avançado falhe;
+- em fila, rota/compromisso atual do motorista pode ser exibido em vermelho e o próximo trajeto do passageiro em amarelo, sem expor endereço de outro passageiro;
+- telefone, CPF, pagamento e chat não são expostos no link.
+
+Backend já aplicado no Supabase de produção nesta preparação.
+Depois de aplicar o ZIP no projeto local, rode npm run typecheck.
+Como o patch anterior de permissões/áudio alterou configuração nativa, ainda será necessário npx expo prebuild --clean antes do APK final.

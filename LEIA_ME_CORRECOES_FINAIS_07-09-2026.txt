@@ -1,0 +1,29 @@
+TUM PASSAGEIRO — CORREÇÕES FINAIS 07/09/2026
+
+Base: Passageiro.zip enviado pelo usuário em 07/09/2026.
+
+Principais correções desta rodada:
+- entrada depende somente de Localização + Notificações;
+- câmera/microfone são solicitados somente quando REC/foto/áudio forem usados;
+- Android solicita COARSE + FINE juntas e os popups nativos são disparados automaticamente na primeira entrada quando permitido;
+- canais Android de status da corrida migrados para V2 e alinhados com o backend send-passenger-ride-status V5;
+- nome do som de fila corrigido para o arquivo físico real;
+- rota válida não é apagada em pulsos temporários de GPS/troca de etapa;
+- antes do embarque: motorista -> embarque -> paradas -> destino;
+- depois do início: motorista -> paradas restantes -> destino;
+- rota recalcula conforme o motorista se move/desvia;
+- polling do motorista ficou menos agressivo (2,5 s visível / 9 s oculto);
+- frota genérica deixa de ser buscada/animada quando existe motorista da corrida;
+- carrinho Mapbox usa direção derivada do deslocamento real, não da orientação do celular;
+- filtros de jitter/precisão reforçados para evitar pulo, giro parado e deslocamentos falsos.
+
+Validações feitas neste ambiente:
+- parser TypeScript/TSX: sem erro de sintaxe;
+- imports relativos: sem arquivos faltando;
+- JSONs principais válidos;
+- todos os sons configurados no app.json/canais existem fisicamente.
+
+IMPORTANTE:
+O npm ci/typecheck completo não pôde ser executado neste ambiente porque o cache npm não contém todas as dependências e a rede externa do executor está indisponível. Antes do AAB/APK final, rode no PC:
+  npm install
+  npm run typecheck

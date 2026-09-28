@@ -1,0 +1,14 @@
+TUM Passageiro — compartilhamento via Cloudflare Pages
+
+Alteração:
+- O token seguro continua sendo criado pelo Supabase.
+- O link público agora abre em:
+  https://tum-acompanhar.pages.dev/?token=...
+- Removido o uso da Edge Function do Supabase como página HTML.
+- Nenhuma lógica de corrida, preço, mapa interno, áudio ou permissões foi alterada neste patch.
+
+Aplicar por cima de:
+C:\TUM\Passageiro
+
+Depois:
+npm run typecheck

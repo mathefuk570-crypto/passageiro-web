@@ -1,0 +1,80 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="expo.modules.tumsafety" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+6
+7    <uses-permission android:name="android.permission.CAMERA" />
+7-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:2:3-63
+7-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:2:20-60
+8    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+8-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:3:3-69
+8-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:3:20-66
+9    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+9-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:4:3-75
+9-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:4:20-72
+10    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+10-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:5:3-82
+10-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:5:20-79
+11    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+11-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:6:3-86
+11-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:6:20-83
+12    <uses-permission android:name="android.permission.WAKE_LOCK" />
+12-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:7:3-66
+12-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:7:20-63
+13    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+13-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:8:3-77
+13-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:8:20-74
+14
+15    <application>
+15-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:9:3-14:17
+16        <activity
+16-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:5-191
+17            android:name="expo.modules.tumsafety.SafetyGalleryUnlockActivity"
+17-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:15-80
+18            android:excludeFromRecents="true"
+18-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:106-139
+19            android:exported="false"
+19-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:81-105
+20            android:theme="@style/TumSafetyTransparentTheme" />
+20-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:10:140-188
+21        <activity
+21-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:5-179
+22            android:name="expo.modules.tumsafety.SafetyCameraPreviewActivity"
+22-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:15-80
+23            android:excludeFromRecents="true"
+23-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:143-176
+24            android:exported="false"
+24-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:81-105
+25            android:screenOrientation="portrait" />
+25-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:11:106-142
+26        <activity
+26-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:5-291
+27            android:name="expo.modules.tumsafety.SafetyRecordingActivity"
+27-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:15-76
+28            android:excludeFromRecents="true"
+28-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:127-160
+29            android:exported="false"
+29-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:77-101
+30            android:launchMode="singleTask"
+30-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:161-192
+31            android:noHistory="true"
+31-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:102-126
+32            android:taskAffinity="${applicationId}.safety"
+32-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:193-239
+33            android:theme="@style/TumSafetyTransparentTheme" />
+33-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:12:240-288
+34
+35        <service
+35-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:5-181
+36            android:name="expo.modules.tumsafety.SafetyRecordingService"
+36-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:14-74
+37            android:exported="false"
+37-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:75-99
+38            android:foregroundServiceType="camera|microphone"
+38-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:129-178
+39            android:stopWithTask="false" />
+39-->C:\TUM\Passageiro\modules\tum-safety\android\src\main\AndroidManifest.xml:13:100-128
+40    </application>
+41
+42</manifest>
